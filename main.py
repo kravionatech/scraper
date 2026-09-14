@@ -2,7 +2,7 @@ import os
 import uuid
 import asyncio
 from typing import List, Optional, Dict
-from fastapi import FastAPI, HTTPException
+from fastapi import FastAPI, HTTPException, Request
 from fastapi.staticfiles import StaticFiles
 from fastapi.middleware.cors import CORSMiddleware
 from pydantic import BaseModel
@@ -18,6 +18,14 @@ app.add_middleware(
     allow_methods=["*"],
     allow_headers=["*"],
 )
+
+@app.middleware("http")
+async def vercel_path_middleware(request: Request, call_next):
+    # Vercel rewrites forward original requested path in x-matched-path
+    matched = request.headers.get("x-matched-path") or request.headers.get("x-vercel-matched-path")
+    if matched:
+        request.scope["path"] = matched.split("?")[0]
+    return await call_next(request)
 
 scraper = FastScraper()
 ga_generator = GA4TrafficGenerator()
@@ -41,6 +49,7 @@ class CancelRequest(BaseModel):
     job_id: str
 
 @app.post("/api/scrape")
+@app.post("/scrape")
 async def scrape_endpoint(payload: ScrapeRequest):
     raw_url = (payload.url or "").strip()
     if not raw_url:
@@ -53,6 +62,7 @@ async def scrape_endpoint(payload: ScrapeRequest):
     return result
 
 @app.post("/api/ga-traffic")
+@app.post("/ga-traffic")
 async def ga_traffic_endpoint(payload: TrafficRequest):
     raw_url = (payload.url or "").strip()
     if not raw_url:
@@ -97,11 +107,13 @@ async def ga_traffic_endpoint(payload: TrafficRequest):
     }
 
 @app.post("/api/ga-cancel")
+@app.post("/ga-cancel")
 async def ga_cancel_endpoint(payload: CancelRequest):
     stopped = ga_generator.cancel_job(payload.job_id)
     return {"job_id": payload.job_id, "stopped": stopped}
 
 @app.get("/api/ga-status/{job_id}")
+@app.get("/ga-status/{job_id}")
 async def ga_status_endpoint(job_id: str):
     info = ga_generator.get_job_status(job_id)
     if not info:
@@ -109,6 +121,7 @@ async def ga_status_endpoint(job_id: str):
     return info
 
 @app.get("/api/presets")
+@app.get("/presets")
 async def get_presets():
     return [
         {
@@ -143,10 +156,11 @@ async def get_presets():
         }
     ]
 
-# Mount frontend static assets (supports both public/ for Vercel and static/ for local)
-static_dir = "public" if os.path.exists("public") else ("static" if os.path.exists("static") else None)
-if static_dir:
-    app.mount("/", StaticFiles(directory=static_dir, html=True), name="static")
+# Mount frontend static assets for local dev only (Vercel CDN handles public/ automatically)
+if not os.environ.get("VERCEL"):
+    static_dir = "public" if os.path.exists("public") else ("static" if os.path.exists("static") else None)
+    if static_dir:
+        app.mount("/", StaticFiles(directory=static_dir, html=True), name="static")
 
 if __name__ == "__main__":
     import uvicorn
