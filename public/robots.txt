@@ -1,4 +1,4 @@
 User-agent: *
 Allow: /
 
-Sitemap: https://scraper-psi-bice.vercel.app/sitemap.xml
+Sitemap: https://lightningscraper.vercel.app/sitemap.xml

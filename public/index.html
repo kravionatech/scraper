@@ -7,12 +7,12 @@
     <meta name="google-site-verification" content="Gy4kRQ2kVd09w7DnUimJmDqVSCDZSQsb3moTIjhpaWE" />
     <meta name="description" content="LightningScraper is an ultra-fast, free online web scraper and GA4 telemetry platform. Extract clean text, HTML, tables, links, and JSON in under 2 seconds with asynchronous HTTP/2 and C-accelerated DOM parsing.">
     <meta name="keywords" content="web scraper online, fast web scraping tool, scrape website to json, extract html data, sub 2 second web scraper, ga4 active users booster, google analytics 4 realtime traffic, python web scraper, http2 data extractor">
-    <link rel="canonical" href="https://scraper-psi-bice.vercel.app/" />
+    <link rel="canonical" href="https://lightningscraper.vercel.app/" />
     <meta name="robots" content="index, follow, max-snippet:-1, max-image-preview:large, max-video-preview:-1">
 
     <!-- Open Graph / Facebook -->
     <meta property="og:type" content="website">
-    <meta property="og:url" content="https://scraper-psi-bice.vercel.app/">
+    <meta property="og:url" content="https://lightningscraper.vercel.app/">
     <meta property="og:title" content="LightningScraper - Sub-2-Second Web Scraper & GA4 Active Users Booster">
     <meta property="og:description" content="Extract clean website data, tables, links, and structured JSON in under 2 seconds. Free real-time HTTP/2 web scraper and GA4 telemetry booster.">
 
@@ -28,9 +28,9 @@
       "@graph": [
         {
           "@type": "WebApplication",
-          "@id": "https://scraper-psi-bice.vercel.app/#webapp",
+          "@id": "https://lightningscraper.vercel.app/#webapp",
           "name": "LightningScraper",
-          "url": "https://scraper-psi-bice.vercel.app/",
+          "url": "https://lightningscraper.vercel.app/",
           "applicationCategory": "DeveloperApplication",
           "operatingSystem": "All (Web-based, Cloud, Windows, macOS, Linux)",
           "description": "Ultra-fast asynchronous web scraper and Google Analytics 4 active user telemetry simulator that extracts data in under 2 seconds.",
@@ -49,7 +49,7 @@
         },
         {
           "@type": "FAQPage",
-          "@id": "https://scraper-psi-bice.vercel.app/#faq",
+          "@id": "https://lightningscraper.vercel.app/#faq",
           "mainEntity": [
             {
               "@type": "Question",
@@ -95,7 +95,7 @@
         },
         {
           "@type": "HowTo",
-          "@id": "https://scraper-psi-bice.vercel.app/#howto",
+          "@id": "https://lightningscraper.vercel.app/#howto",
           "name": "How to Scrape Website Data in Under 2 Seconds",
           "step": [
             {
@@ -655,7 +655,7 @@ import asyncio
 async def scrape_target(target_url: str):
     async with httpx.AsyncClient(http2=True) as client:
         response = await client.post(
-            "https://scraper-psi-bice.vercel.app/api/scrape",
+            "https://lightningscraper.vercel.app/api/scrape",
             json={
                 "url": target_url,
                 "custom_selectors": [{"name": "headlines", "selector": "h2.story-heading"}],
@@ -675,7 +675,7 @@ asyncio.run(scrape_target("https://news.ycombinator.com"))</div>
                             <span>cURL (Terminal Command)</span>
                             <span>bash</span>
                         </div>
-                        <div class="seo-code-content">curl -X POST "https://scraper-psi-bice.vercel.app/api/scrape" \
+                        <div class="seo-code-content">curl -X POST "https://lightningscraper.vercel.app/api/scrape" \
   -H "Content-Type: application/json" \
   -d '{"url": "https://quotes.toscrape.com", "bypass_cache": true}'</div>
                     </div>
