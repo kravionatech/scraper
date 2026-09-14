@@ -1,0 +1,344 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>LightningScraper - Sub-2-Second Live Data Extraction</title>
+    <link rel="stylesheet" href="style.css?v=2.1">
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&family=JetBrains+Mono:wght@400;500;700&display=swap" rel="stylesheet">
+</head>
+<body>
+    <div class="app-container">
+        <!-- Top Navigation -->
+        <header class="navbar">
+            <div class="logo-box">
+                <span class="bolt-icon">⚡</span>
+                <span class="logo-text">Lightning<span class="highlight">Scraper</span></span>
+                <span class="badge-sub2">⚡ &lt; 2s Target</span>
+            </div>
+            <div class="stats-pills">
+                <div class="pill">
+                    <span class="label">Engine</span>
+                    <span class="val">HTTP/2 + lxml Core</span>
+                </div>
+                <div class="pill">
+                    <span class="label">Speed Rating</span>
+                    <span class="val rating-gold">Hyper-Fast</span>
+                </div>
+                <button id="themeToggleBtn" class="theme-toggle-btn" title="Toggle Light/Dark Theme">
+                    <span id="themeIcon">☀️</span> <span id="themeText">Light Theme</span>
+                </button>
+            </div>
+        </header>
+
+        <!-- Main Hero & Input Section -->
+        <main class="content-area">
+            <section class="hero-section">
+                <h1>Extract Website Data in <span class="gradient-text">Under 2 Seconds</span></h1>
+                <p class="subtitle">Real-time HTTP/2 asynchronous connection pooling, C-accelerated DOM parsing, and instant visual extraction.</p>
+
+                <!-- Scraper Control Card -->
+                <div class="search-card">
+                    <div class="input-row">
+                        <div class="url-input-wrapper">
+                            <span class="input-icon">🌐</span>
+                            <input type="url" id="targetUrl" placeholder="Enter any URL (e.g. https://news.ycombinator.com or books.toscrape.com)" autocomplete="off" />
+                        </div>
+                        <button id="scrapeBtn" class="btn-primary">
+                            <span class="btn-spinner" id="btnSpinner" style="display:none;"></span>
+                            <span id="btnText">Scrape In &lt; 2s</span>
+                        </button>
+                    </div>
+
+                    <!-- Speed Presets -->
+                    <div class="presets-container">
+                        <span class="preset-label">1-Click Live Tests:</span>
+                        <div class="preset-chips" id="presetChips">
+                            <button class="chip" data-url="https://news.ycombinator.com" data-sel-name="stories" data-sel=".titleline > a">🔥 Hacker News</button>
+                            <button class="chip" data-url="https://books.toscrape.com" data-sel-name="books" data-sel="h3 a">📚 Books Store</button>
+                            <button class="chip" data-url="https://quotes.toscrape.com" data-sel-name="quotes" data-sel=".quote span.text">💬 Quotes Site</button>
+                            <button class="chip" data-url="https://en.wikipedia.org/wiki/Special:Random" data-sel-name="heading" data-sel="#firstHeading">📖 Wikipedia Random</button>
+                        </div>
+                    </div>
+
+                    <!-- Advanced Selectors Collapsible -->
+                    <details class="advanced-box">
+                        <summary>⚡ Custom CSS Selectors & Options</summary>
+                        <div class="selector-inputs">
+                            <div class="field-group">
+                                <label>Field Label</label>
+                                <input type="text" id="customName" placeholder="e.g. prices, titles, ratings" value="items" />
+                            </div>
+                            <div class="field-group flex-2">
+                                <label>CSS Selector</label>
+                                <input type="text" id="customSelector" placeholder="e.g. .price_color or h3 a" />
+                            </div>
+                            <div class="field-group checkbox-group">
+                                <label for="bypassCache">
+                                    <input type="checkbox" id="bypassCache"> Bypass Cache
+                                </label>
+                            </div>
+                        </div>
+                    </details>
+
+                    <div id="scrapeErrorBox" class="scrape-error-box" style="display:none;"></div>
+
+                    <!-- GA4 Active User Booster Section -->
+                    <div class="ga-booster-card">
+                        <div class="ga-header">
+                            <div class="ga-icon-badge">📈</div>
+                            <div class="ga-title-wrap">
+                                <h4>Google Analytics Active Users Booster <span class="badge-pill">Enterprise</span></h4>
+                                <p class="ga-sub">Auto-detects GA4 measurement tag, cycles verified multi-country proxies, rotates real devices, and streams real-time telemetry.</p>
+                            </div>
+                        </div>
+
+                        <!-- 4-Column Primary Controls Grid -->
+                        <div class="ga-controls-grid">
+                            <div class="ga-input-item">
+                                <label for="gaUserCount">👥 Requests / Users</label>
+                                <input type="number" id="gaUserCount" class="input-control" value="1000" min="10" max="10000" step="50" />
+                            </div>
+                            <div class="ga-input-item">
+                                <label for="gaDuration">⏱️ Time (Minutes)</label>
+                                <input type="number" id="gaDuration" class="input-control" value="0" min="0" max="120" step="1" placeholder="0 = Instant fast" />
+                            </div>
+                            <div class="ga-input-item">
+                                <label for="gaLocation">🌍 Traffic Location</label>
+                                <div class="select-wrapper">
+                                    <select id="gaLocation" class="select-control">
+                                        <option value="global" selected>🌐 Global Mix (US, UK, DE, NL, RU)</option>
+                                        <option value="us">🇺🇸 United States (NY, SF, Dallas)</option>
+                                        <option value="europe">🇪🇺 Europe (Germany, France, NL)</option>
+                                        <option value="india">🇮🇳 India (Delhi, Mumbai, Bengaluru)</option>
+                                        <option value="uk">🇬🇧 United Kingdom (London)</option>
+                                        <option value="singapore">🇸🇬 Singapore</option>
+                                    </select>
+                                </div>
+                            </div>
+                            <div class="ga-input-item">
+                                <label for="gaDevice">📱 Target Device</label>
+                                <div class="select-wrapper">
+                                    <select id="gaDevice" class="select-control">
+                                        <option value="all" selected>🔄 Mixed (Mobile 60%, PC 35%)</option>
+                                        <option value="mobile">📱 Mobile Only (iPhone, Galaxy)</option>
+                                        <option value="desktop">💻 Desktop Only (Windows, Mac)</option>
+                                        <option value="tablet">📟 Tablet Only (iPad Air)</option>
+                                    </select>
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- Secondary Controls (Measurement ID + Proxy Tunnel) -->
+                        <div class="ga-extra-grid">
+                            <div class="ga-input-item flex-1">
+                                <label for="gaMeasurementId">🏷️ GA Measurement ID <span class="opt-label">(Optional)</span></label>
+                                <input type="text" id="gaMeasurementId" class="input-control font-mono" placeholder="Auto-detects G-XXXXX if empty" />
+                            </div>
+                            <div class="ga-input-item flex-2">
+                                <label for="gaProxy">🛡️ Proxy Engine: <span class="badge-active">⚡ Auto Live Verified Active</span></label>
+                                <input type="text" id="gaProxy" class="input-control font-mono" placeholder="Default: Multi-country verified proxies active" />
+                            </div>
+                        </div>
+
+                        <!-- Action Bar Row -->
+                        <div class="ga-action-bar">
+                            <div class="ga-action-note">
+                                <span class="pulse-indicator"></span>
+                                <span>Multi-country proxy tunnels ready for live telemetry</span>
+                            </div>
+                            <div class="ga-action-btns">
+                                <button id="sendTrafficBtn" class="btn-ga">
+                                    <span class="btn-spinner" id="gaSpinner" style="display:none;"></span>
+                                    <span id="gaBtnText">🚀 Send Active Users</span>
+                                </button>
+                                <button id="cancelTrafficBtn" class="btn-ga-cancel" style="display:none;">
+                                    🛑 Stop / Cancel
+                                </button>
+                            </div>
+                        </div>
+
+                        <div id="gaStatusBox" class="ga-status-box" style="display: none;"></div>
+                    </div>
+
+                    <!-- Enterprise Real-Time Traffic Telemetry Monitor Deck -->
+                    <div id="trafficMonitorDeck" class="traffic-monitor-deck" style="display: none;">
+                        <div class="monitor-header">
+                            <div class="monitor-title">
+                                <span class="pulsing-radar"></span>
+                                <div>
+                                    <h3>Enterprise Live Traffic Monitor</h3>
+                                    <span class="monitor-subtitle">Real-time socket telemetry, geo-distribution, and GA4 ingestion rates</span>
+                                </div>
+                            </div>
+                            <div class="monitor-badge" id="monitorStatusBadge">INITIALIZING</div>
+                        </div>
+
+                        <!-- 4 Metric KPI Cards -->
+                        <div class="kpi-grid">
+                            <div class="kpi-card">
+                                <span class="kpi-label">Progress</span>
+                                <div class="kpi-value"><span id="kpiProgress">0</span>%</div>
+                                <div class="progress-bar-container">
+                                    <div id="kpiProgressBar" class="progress-bar-fill" style="width: 0%;"></div>
+                                </div>
+                            </div>
+                            <div class="kpi-card">
+                                <span class="kpi-label">Active Users Sent</span>
+                                <div class="kpi-value text-emerald"><span id="kpiCompleted">0</span> / <span id="kpiTotal">0</span></div>
+                                <span class="kpi-foot">Failed / Retried: <b id="kpiFailed">0</b></span>
+                            </div>
+                            <div class="kpi-card">
+                                <span class="kpi-label">Throughput / Speed</span>
+                                <div class="kpi-value text-blue"><span id="kpiRate">0.0</span> <small>req/sec</small></div>
+                                <span class="kpi-foot">Latency: <b id="kpiLatency">&lt; 120ms</b></span>
+                            </div>
+                            <div class="kpi-card">
+                                <span class="kpi-label">Target GA4 Property</span>
+                                <div class="kpi-value font-mono text-purple" id="kpiMeasurementId">Detecting...</div>
+                                <span class="kpi-foot">Elapsed: <b id="kpiElapsed">0.0s</b></span>
+                            </div>
+                        </div>
+
+                        <!-- Real-Time Telemetry Panels -->
+                        <div class="monitor-panels">
+                            <!-- Country Distribution -->
+                            <div class="panel-box">
+                                <div class="panel-header">
+                                    <h4>🌍 Live Geo Country Distribution</h4>
+                                    <span class="pill-mini" id="countryTotalCount">0 countries</span>
+                                </div>
+                                <div class="breakdown-list" id="countryBreakdownList">
+                                    <div class="empty-hint">Waiting for traffic dispatch...</div>
+                                </div>
+                            </div>
+
+                            <!-- Device Distribution -->
+                            <div class="panel-box">
+                                <div class="panel-header">
+                                    <h4>📱 Device & Browser Rotation</h4>
+                                    <span class="pill-mini" id="deviceTotalCount">0 models</span>
+                                </div>
+                                <div class="breakdown-list" id="deviceBreakdownList">
+                                    <div class="empty-hint">Waiting for traffic dispatch...</div>
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- Live Terminal / Telemetry Event Stream -->
+                        <div class="live-stream-panel">
+                            <div class="stream-header">
+                                <span>⚡ Live Telemetry Event Stream (Socket Handshakes)</span>
+                                <span class="stream-status">● Live Stream Active</span>
+                            </div>
+                            <div class="terminal-logs" id="terminalLogs">
+                                <div class="log-line text-muted">[System] Ready to stream live user sessions...</div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </section>
+
+            <!-- Real-time Speed & Performance Monitor Banner -->
+            <section class="performance-bar" id="performanceBar" style="display: none;">
+                <div class="speed-clock">
+                    <span class="clock-icon">⏱️</span>
+                    <span class="latency-label">Scraped In:</span>
+                    <span class="latency-value" id="latencyDisplay">0.00s</span>
+                    <span class="verdict-tag" id="verdictTag">Passed &lt; 2s</span>
+                </div>
+                <div class="timing-breakdown">
+                    <span>⚡ Network: <b id="fetchTime">0ms</b></span>
+                    <span>🧩 Parsing: <b id="parseTime">0ms</b></span>
+                    <span>📦 Size: <b id="pageSize">0 KB</b></span>
+                    <span>🚦 Status: <b id="httpStatus">200</b></span>
+                </div>
+            </section>
+
+            <!-- Results Display Area -->
+            <section class="results-wrapper" id="resultsWrapper" style="display: none;">
+                <!-- Result Tabs -->
+                <div class="results-header">
+                    <div class="tabs">
+                        <button class="tab-btn active" data-tab="tab-overview">Overview</button>
+                        <button class="tab-btn" data-tab="tab-custom">Custom Elements (<span id="customCount">0</span>)</button>
+                        <button class="tab-btn" data-tab="tab-headings">Headings (<span id="headingCount">0</span>)</button>
+                        <button class="tab-btn" data-tab="tab-links">Links (<span id="linksCount">0</span>)</button>
+                        <button class="tab-btn" data-tab="tab-images">Images (<span id="imagesCount">0</span>)</button>
+                        <button class="tab-btn" data-tab="tab-json">Raw JSON</button>
+                    </div>
+                    <div class="export-actions">
+                        <button class="btn-outline" id="copyJsonBtn">📋 Copy JSON</button>
+                        <button class="btn-outline" id="downloadCsvBtn">📥 Export CSV</button>
+                        <button class="btn-outline" id="downloadJsonBtn">💾 Download JSON</button>
+                    </div>
+                </div>
+
+                <!-- Tab Panes -->
+                <div class="tab-content">
+                    <!-- Overview Tab -->
+                    <div class="tab-pane active" id="tab-overview">
+                        <div class="overview-grid">
+                            <div class="card meta-card">
+                                <div class="card-header">
+                                    <img id="pageFavicon" class="favicon-icon" src="" alt="icon" onerror="this.style.display='none'"/>
+                                    <h3 id="pageTitle">Website Title</h3>
+                                </div>
+                                <p class="meta-desc" id="pageDescription">No description available.</p>
+                                <div class="url-badge"><a id="pageFinalUrl" href="#" target="_blank"></a></div>
+                            </div>
+                            <div class="card og-card" id="ogCardWrapper">
+                                <h4>Featured / OpenGraph Media</h4>
+                                <div class="og-img-preview" id="ogImageHolder">
+                                    <span class="no-img">No OG preview available</span>
+                                </div>
+                            </div>
+                        </div>
+
+                        <div class="card text-card">
+                            <h4>Extracted Clean Text Sample</h4>
+                            <p class="clean-text-snippet" id="textSnippet"></p>
+                        </div>
+                    </div>
+
+                    <!-- Custom Extracted Elements Tab -->
+                    <div class="tab-pane" id="tab-custom">
+                        <div class="card">
+                            <h4>Targeted CSS Extraction Results</h4>
+                            <div id="customContent" class="custom-grid"></div>
+                        </div>
+                    </div>
+
+                    <!-- Headings Tab -->
+                    <div class="tab-pane" id="tab-headings">
+                        <div class="card">
+                            <ul class="data-list" id="headingsList"></ul>
+                        </div>
+                    </div>
+
+                    <!-- Links Tab -->
+                    <div class="tab-pane" id="tab-links">
+                        <div class="card">
+                            <ul class="data-list" id="linksList"></ul>
+                        </div>
+                    </div>
+
+                    <!-- Images Tab -->
+                    <div class="tab-pane" id="tab-images">
+                        <div class="image-gallery" id="imagesGallery"></div>
+                    </div>
+
+                    <!-- Raw JSON Tab -->
+                    <div class="tab-pane" id="tab-json">
+                        <pre class="json-code" id="rawJsonCode"></pre>
+                    </div>
+                </div>
+            </section>
+        </main>
+    </div>
+
+    <script src="app.js"></script>
+</body>
+</html>
