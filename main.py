@@ -20,11 +20,19 @@ app.add_middleware(
 )
 
 @app.middleware("http")
-async def vercel_path_middleware(request: Request, call_next):
-    # Vercel rewrites forward original requested path in x-matched-path
-    matched = request.headers.get("x-matched-path") or request.headers.get("x-vercel-matched-path")
-    if matched:
-        request.scope["path"] = matched.split("?")[0]
+async def normalize_path_middleware(request: Request, call_next):
+    path = request.scope.get("path", "")
+    if path in ("/api/index.py", "/index.py", "/api/index"):
+        matched = request.headers.get("x-matched-path") or request.headers.get("x-vercel-matched-path")
+        if matched:
+            path = matched.split("?")[0]
+    
+    if path.startswith("/api"):
+        normalized = path[4:]
+        request.scope["path"] = normalized if normalized.startswith("/") else ("/" + normalized)
+    else:
+        request.scope["path"] = path
+
     return await call_next(request)
 
 scraper = FastScraper()
