@@ -60,7 +60,9 @@ class FastScraper:
         self,
         url: str,
         custom_selectors: Optional[List[Dict[str, str]]] = None,
-        bypass_cache: bool = False
+        bypass_cache: bool = False,
+        user_agent: Optional[str] = None,
+        timeout_sec: Optional[float] = 12.0
     ) -> Dict[str, Any]:
         start_time = time.perf_counter()
 
@@ -94,17 +96,23 @@ class FastScraper:
         fetch_start = time.perf_counter()
         resp = None
 
+        req_headers = dict(HEADERS)
+        if user_agent:
+            req_headers["User-Agent"] = user_agent
+
+        effective_timeout = max(float(timeout_sec or 12.0), 3.0)
+
         # Primary fetch with HTTP/2 client
         try:
             client = await self.get_client()
-            resp = await client.get(clean_url)
+            resp = await client.get(clean_url, headers=req_headers, timeout=effective_timeout)
         except Exception as primary_err:
             # Automatic fallback to standard HTTP/1.1 if HTTP/2 or pool fails
             try:
                 async with httpx.AsyncClient(
-                    headers=HEADERS,
+                    headers=req_headers,
                     follow_redirects=True,
-                    timeout=httpx.Timeout(10.0),
+                    timeout=httpx.Timeout(effective_timeout),
                     verify=False
                 ) as fallback_client:
                     resp = await fallback_client.get(clean_url)
@@ -212,28 +220,60 @@ class FastScraper:
                 except Exception:
                     pass
 
-        # 6. Custom CSS Selectors
+        # 6. Custom CSS Selectors (with optional attribute extraction)
         custom_results = {}
         if custom_selectors:
             for item in custom_selectors:
                 field_name = item.get("name", "custom")
                 selector = item.get("selector", "")
+                attr = (item.get("attribute") or "text").strip().lower()
                 if selector:
                     try:
                         matches = []
                         for matched in soup.select(selector):
-                            val = matched.get_text(strip=True)
+                            if attr == "text" or not attr:
+                                val = matched.get_text(strip=True)
+                            elif attr in matched.attrs:
+                                raw_val = matched.attrs[attr]
+                                val = " ".join(raw_val) if isinstance(raw_val, list) else str(raw_val).strip()
+                            else:
+                                val = matched.get_text(strip=True)
                             if val:
                                 matches.append(val)
                         custom_results[field_name] = matches
                     except Exception as err:
                         custom_results[field_name] = f"Selector error: {str(err)}"
 
-        # 7. Main Text Preview
+        # 7. HTML Tables Matrix Extractor
+        tables = []
+        for tbl in soup.find_all("table"):
+            headers = [th.get_text(strip=True) for th in tbl.find_all("th")]
+            rows = []
+            for tr in tbl.find_all("tr"):
+                cells = [td.get_text(strip=True) for td in tr.find_all(["td", "th"])]
+                if cells and any(cells):
+                    rows.append(cells)
+            if rows:
+                tables.append({
+                    "headers": headers,
+                    "rows": rows[:40]
+                })
+            if len(tables) >= 10:
+                break
+
+        # 8. Full Meta Tags Dictionary
+        meta_tags = {}
+        for m in soup.find_all("meta"):
+            name = m.get("name") or m.get("property") or m.get("http-equiv")
+            content = m.get("content")
+            if name and content and len(content) < 500:
+                meta_tags[name] = content
+
+        # 9. Main Text Preview
         for elem in soup(["script", "style", "nav", "footer", "header", "noscript"]):
             elem.decompose()
         raw_text = soup.get_text(separator=" ", strip=True)
-        cleaned_text = re.sub(r"\s+", " ", raw_text)[:2500]
+        cleaned_text = re.sub(r"\s+", " ", raw_text)[:3000]
 
         parse_duration_ms = round((time.perf_counter() - parse_start) * 1000, 2)
         total_duration_ms = round((time.perf_counter() - start_time) * 1000, 2)
@@ -253,6 +293,8 @@ class FastScraper:
             "headings": headings,
             "links": links,
             "images": images,
+            "tables": tables,
+            "meta_tags": meta_tags,
             "json_ld": json_ld_data,
             "text_sample": cleaned_text,
             "custom_data": custom_results,

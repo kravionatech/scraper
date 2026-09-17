@@ -42,6 +42,8 @@ class ScrapeRequest(BaseModel):
     url: str
     custom_selectors: Optional[List[Dict[str, str]]] = None
     bypass_cache: Optional[bool] = False
+    user_agent: Optional[str] = None
+    timeout_seconds: Optional[float] = 12.0
 
 class TrafficRequest(BaseModel):
     url: str
@@ -52,6 +54,11 @@ class TrafficRequest(BaseModel):
     proxy: Optional[str] = None
     concurrency: Optional[int] = 40
     measurement_id: Optional[str] = None
+    referrer: Optional[str] = "google"
+    utm_source: Optional[str] = None
+    utm_medium: Optional[str] = None
+    utm_campaign: Optional[str] = None
+    event_name: Optional[str] = "page_view"
 
 class CancelRequest(BaseModel):
     job_id: str
@@ -65,7 +72,9 @@ async def scrape_endpoint(payload: ScrapeRequest):
     result = await scraper.scrape(
         url=raw_url,
         custom_selectors=payload.custom_selectors,
-        bypass_cache=payload.bypass_cache or False
+        bypass_cache=payload.bypass_cache or False,
+        user_agent=payload.user_agent,
+        timeout_sec=payload.timeout_seconds or 12.0
     )
     return result
 
@@ -88,7 +97,12 @@ async def ga_traffic_endpoint(payload: TrafficRequest):
         duration_minutes=duration_minutes,
         device_choice=payload.device or "all",
         location_choice=payload.location or "global",
-        proxy_url=payload.proxy
+        proxy_url=payload.proxy,
+        referrer=payload.referrer or "google",
+        utm_source=payload.utm_source,
+        utm_medium=payload.utm_medium,
+        utm_campaign=payload.utm_campaign,
+        event_name=payload.event_name or "page_view"
     )
 
     # Launch background non-blocking execution safely
@@ -102,7 +116,12 @@ async def ga_traffic_endpoint(payload: TrafficRequest):
             location_choice=payload.location or "global",
             proxy_url=payload.proxy,
             concurrency=concurrency,
-            custom_measurement_id=payload.measurement_id
+            custom_measurement_id=payload.measurement_id,
+            referrer=payload.referrer or "google",
+            utm_source=payload.utm_source,
+            utm_medium=payload.utm_medium,
+            utm_campaign=payload.utm_campaign,
+            event_name=payload.event_name or "page_view"
         )
     )
 

@@ -248,23 +248,47 @@
                         </div>
                     </div>
 
-                    <!-- Advanced Selectors Collapsible -->
-                    <details class="advanced-box">
-                        <summary>⚡ Custom CSS Selectors & Options</summary>
-                        <div class="selector-inputs">
-                            <div class="field-group">
-                                <label>Field Label</label>
-                                <input type="text" id="customName" placeholder="e.g. prices, titles, ratings" value="items" />
+                    <!-- Advanced Selectors & Crawler Configuration Collapsible -->
+                    <details class="advanced-box" id="advancedCrawlerBox">
+                        <summary>⚡ Advanced Selectors & Crawler Controls</summary>
+                        
+                        <!-- Crawler Options Grid -->
+                        <div class="advanced-options-grid">
+                            <div class="advanced-field-group">
+                                <label for="browserEmulation">🌐 Browser Emulation / User-Agent</label>
+                                <select id="browserEmulation" class="input-control">
+                                    <option value="" selected>💻 Chrome 128 (Windows Desktop)</option>
+                                    <option value="Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/605.1.15 (KHTML, like Gecko) Version/17.5 Safari/605.1.15">🍏 Safari 17 (macOS Sonoma)</option>
+                                    <option value="Mozilla/5.0 (iPhone; CPU iPhone OS 17_5_1 like Mac OS X) AppleWebKit/605.1.15 (KHTML, like Gecko) Version/17.5 Mobile/15E148 Safari/604.1">📱 iPhone 15 Pro (iOS Safari)</option>
+                                    <option value="Mozilla/5.0 (Linux; Android 14; SM-S928B) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/127.0.6533.103 Mobile Safari/537.36">🤖 Galaxy S24 Ultra (Android)</option>
+                                    <option value="Mozilla/5.0 (compatible; Googlebot/2.1; +http://www.google.com/bot.html)">🔍 Googlebot 2.1 (SEO Spider)</option>
+                                    <option value="custom">⚙️ Custom User-Agent String</option>
+                                </select>
                             </div>
-                            <div class="field-group flex-2">
-                                <label>CSS Selector</label>
-                                <input type="text" id="customSelector" placeholder="e.g. .price_color or h3 a" />
+                            <div class="advanced-field-group" id="customUaGroup" style="display: none;">
+                                <label for="customUaInput">Custom User-Agent</label>
+                                <input type="text" id="customUaInput" class="input-control" placeholder="Mozilla/5.0 (compatible; MyBot/1.0)" />
                             </div>
-                            <div class="field-group checkbox-group">
-                                <label for="bypassCache">
-                                    <input type="checkbox" id="bypassCache"> Bypass Cache
+                            <div class="advanced-field-group">
+                                <label>⏱️ Request Timeout: <span id="timeoutDisplay" class="val-pill">12s</span></label>
+                                <div class="range-slider-wrap">
+                                    <input type="range" id="timeoutSlider" min="3" max="30" step="1" value="12" />
+                                </div>
+                            </div>
+                            <div class="advanced-field-group" style="justify-content: flex-end;">
+                                <label for="bypassCache" style="cursor: pointer; display: flex; align-items: center; gap: 8px;">
+                                    <input type="checkbox" id="bypassCache"> ⚡ Bypass Cache (Live Fresh Fetch)
                                 </label>
                             </div>
+                        </div>
+
+                        <!-- Dynamic Multi-Selector List -->
+                        <div class="selectors-builder-header">
+                            <h5>🎯 Custom Data Fields & Element Selectors</h5>
+                            <button type="button" id="addSelectorBtn" class="btn-add-selector">+ Add Field</button>
+                        </div>
+                        <div class="selectors-list" id="customSelectorsList">
+                            <!-- Populated dynamically via JS with initial item -->
                         </div>
                     </details>
 
@@ -276,8 +300,17 @@
                             <div class="ga-icon-badge">📈</div>
                             <div class="ga-title-wrap">
                                 <h4>Google Analytics Active Users Booster <span class="badge-pill">Enterprise</span></h4>
-                                <p class="ga-sub">Auto-detects GA4 measurement tag, cycles verified multi-country proxies, rotates real devices, and streams real-time telemetry.</p>
+                                <p class="ga-sub">Auto-detects GA4 measurement tag, cycles verified multi-country proxies, rotates real devices, injects UTM campaigns, and streams real-time telemetry.</p>
                             </div>
+                        </div>
+
+                        <!-- 1-Click Fast Traffic Presets -->
+                        <div class="ga-campaign-presets">
+                            <span class="preset-label">Quick Campaigns:</span>
+                            <button type="button" class="ga-preset-btn" data-users="500" data-dur="0" data-loc="global" data-ref="google" data-event="page_view">⚡ 500 Instant Fast</button>
+                            <button type="button" class="ga-preset-btn" data-users="1000" data-dur="2" data-loc="us" data-ref="google" data-event="page_view">🚀 1,000 US Users (2m)</button>
+                            <button type="button" class="ga-preset-btn" data-users="2500" data-dur="5" data-loc="global" data-ref="google" data-event="page_view">📈 2,500 Google Organic (5m)</button>
+                            <button type="button" class="ga-preset-btn" data-users="1500" data-dur="3" data-loc="europe" data-ref="twitter" data-event="user_engagement">🐦 1,500 Social Twitter Surge</button>
                         </div>
 
                         <!-- 4-Column Primary Controls Grid -->
@@ -316,6 +349,46 @@
                             </div>
                         </div>
 
+                        <!-- Extended Campaign Controls (Traffic Source, Event Type, Concurrency) -->
+                        <div class="ga-controls-grid" style="margin-top: 10px;">
+                            <div class="ga-input-item">
+                                <label for="gaReferrer">🔗 Traffic Referrer Source</label>
+                                <div class="select-wrapper">
+                                    <select id="gaReferrer" class="select-control">
+                                        <option value="google" selected>🔍 Google Organic (google.com)</option>
+                                        <option value="direct">🌐 Direct / No Referrer</option>
+                                        <option value="facebook">📘 Facebook (facebook.com)</option>
+                                        <option value="twitter">🐦 X / Twitter (t.co)</option>
+                                        <option value="reddit">👾 Reddit (reddit.com)</option>
+                                        <option value="youtube">📺 YouTube (youtube.com)</option>
+                                        <option value="bing">🔎 Bing (bing.com)</option>
+                                        <option value="custom">⚙️ Custom Referrer URL</option>
+                                    </select>
+                                </div>
+                            </div>
+                            <div class="ga-input-item" id="gaCustomReferrerGroup" style="display: none;">
+                                <label for="gaCustomReferrer">Custom Referrer URL</label>
+                                <input type="text" id="gaCustomReferrer" class="input-control font-mono" placeholder="https://news.ycombinator.com/" />
+                            </div>
+                            <div class="ga-input-item">
+                                <label for="gaEventType">⚡ GA4 Telemetry Event</label>
+                                <div class="select-wrapper">
+                                    <select id="gaEventType" class="select-control">
+                                        <option value="page_view" selected>📄 page_view (Standard Page View)</option>
+                                        <option value="user_engagement">⏱️ user_engagement (Active Session)</option>
+                                        <option value="scroll">📜 scroll (90% Depth Read)</option>
+                                        <option value="view_item">🛍️ view_item (E-Commerce Product View)</option>
+                                    </select>
+                                </div>
+                            </div>
+                            <div class="ga-input-item">
+                                <label>⚡ Concurrency: <span id="concurrencyDisplay" class="val-pill">40 streams</span></label>
+                                <div class="range-slider-wrap" style="height: 38px;">
+                                    <input type="range" id="gaConcurrency" min="10" max="80" step="5" value="40" />
+                                </div>
+                            </div>
+                        </div>
+
                         <!-- Secondary Controls (Measurement ID + Proxy Tunnel) -->
                         <div class="ga-extra-grid">
                             <div class="ga-input-item flex-1">
@@ -327,6 +400,25 @@
                                 <input type="text" id="gaProxy" class="input-control font-mono" placeholder="Default: Multi-country verified proxies active" />
                             </div>
                         </div>
+
+                        <!-- UTM Campaign Builder Collapsible -->
+                        <details class="utm-details-box">
+                            <summary>🎯 UTM Campaign Tags (utm_source, utm_medium, utm_campaign)</summary>
+                            <div class="utm-inputs-grid">
+                                <div class="utm-input-item">
+                                    <label for="utmSource">utm_source</label>
+                                    <input type="text" id="utmSource" class="input-control" placeholder="e.g. google, newsletter, twitter" />
+                                </div>
+                                <div class="utm-input-item">
+                                    <label for="utmMedium">utm_medium</label>
+                                    <input type="text" id="utmMedium" class="input-control" placeholder="e.g. organic, cpc, referral, social" />
+                                </div>
+                                <div class="utm-input-item">
+                                    <label for="utmCampaign">utm_campaign</label>
+                                    <input type="text" id="utmCampaign" class="input-control" placeholder="e.g. traffic_surge_2026" />
+                                </div>
+                            </div>
+                        </details>
 
                         <!-- Action Bar Row -->
                         <div class="ga-action-bar">
@@ -444,6 +536,14 @@
 
             <!-- Results Display Area -->
             <section class="results-wrapper" id="resultsWrapper" style="display: none;">
+                <!-- Live Search & Filter Bar -->
+                <div class="results-filter-bar">
+                    <span class="filter-icon">🔍</span>
+                    <input type="text" id="resultsFilterInput" placeholder="Live search extracted headings, links, custom elements, tables, and meta tags..." />
+                    <button id="clearFilterBtn" class="filter-clear-btn" style="display:none;" title="Clear filter">✕</button>
+                    <span id="filterMatchesCount" class="filter-count"></span>
+                </div>
+
                 <!-- Result Tabs -->
                 <div class="results-header">
                     <div class="tabs">
@@ -452,10 +552,14 @@
                         <button class="tab-btn" data-tab="tab-headings">Headings (<span id="headingCount">0</span>)</button>
                         <button class="tab-btn" data-tab="tab-links">Links (<span id="linksCount">0</span>)</button>
                         <button class="tab-btn" data-tab="tab-images">Images (<span id="imagesCount">0</span>)</button>
+                        <button class="tab-btn" data-tab="tab-tables">Tables (<span id="tablesCount">0</span>)</button>
+                        <button class="tab-btn" data-tab="tab-meta">Meta & SEO (<span id="metaCount">0</span>)</button>
                         <button class="tab-btn" data-tab="tab-json">Raw JSON</button>
                     </div>
                     <div class="export-actions">
                         <button class="btn-outline" id="copyJsonBtn">📋 Copy JSON</button>
+                        <button class="btn-outline" id="copyCsvBtn">📋 Copy CSV</button>
+                        <button class="btn-outline" id="copyTextBtn">📄 Copy Text</button>
                         <button class="btn-outline" id="downloadCsvBtn">📥 Export CSV</button>
                         <button class="btn-outline" id="downloadJsonBtn">💾 Download JSON</button>
                     </div>
@@ -513,6 +617,22 @@
                     <!-- Images Tab -->
                     <div class="tab-pane" id="tab-images">
                         <div class="image-gallery" id="imagesGallery"></div>
+                    </div>
+
+                    <!-- Tables Tab -->
+                    <div class="tab-pane" id="tab-tables">
+                        <div class="card">
+                            <h4>Extracted HTML Tables Matrix</h4>
+                            <div id="tablesContent" class="tables-grid"></div>
+                        </div>
+                    </div>
+
+                    <!-- Meta & SEO Directives Tab -->
+                    <div class="tab-pane" id="tab-meta">
+                        <div class="card">
+                            <h4>Page Meta Tags & Search Engine Directives</h4>
+                            <div id="metaTagsContent" class="meta-tags-table-wrap"></div>
+                        </div>
                     </div>
 
                     <!-- Raw JSON Tab -->

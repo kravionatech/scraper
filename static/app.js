@@ -12,12 +12,84 @@ document.querySelectorAll(".tab-btn").forEach(btn => {
     });
 });
 
-// Presets click
+// =========================================================
+// DYNAMIC MULTI-SELECTOR BUILDER
+// =========================================================
+const selectorsList = document.getElementById("customSelectorsList");
+const addSelectorBtn = document.getElementById("addSelectorBtn");
+
+function addSelectorRow(name = "", selector = "", attr = "text") {
+    if (!selectorsList) return;
+    const row = document.createElement("div");
+    row.className = "selector-row";
+    row.innerHTML = `
+        <div class="sel-name">
+            <input type="text" class="field-name" placeholder="Field Label (e.g. title)" value="${escapeHtml(name)}" />
+        </div>
+        <div class="sel-query">
+            <input type="text" class="field-sel" placeholder="CSS Selector (e.g. .price, h1, a)" value="${escapeHtml(selector)}" />
+        </div>
+        <div class="sel-attr">
+            <select class="field-attr">
+                <option value="text"${attr === 'text' ? ' selected' : ''}>Text (Inner)</option>
+                <option value="href"${attr === 'href' ? ' selected' : ''}>href (Link URL)</option>
+                <option value="src"${attr === 'src' ? ' selected' : ''}>src (Media/Img)</option>
+                <option value="alt"${attr === 'alt' ? ' selected' : ''}>alt (Img Alt)</option>
+                <option value="content"${attr === 'content' ? ' selected' : ''}>content (Meta)</option>
+                <option value="class"${attr === 'class' ? ' selected' : ''}>class</option>
+                <option value="id"${attr === 'id' ? ' selected' : ''}>id</option>
+            </select>
+        </div>
+        <button type="button" class="btn-remove-sel" title="Remove Field">✕</button>
+    `;
+
+    row.querySelector(".btn-remove-sel").addEventListener("click", () => {
+        if (selectorsList.children.length > 1) {
+            row.remove();
+        } else {
+            row.querySelector(".field-name").value = "";
+            row.querySelector(".field-sel").value = "";
+        }
+    });
+
+    selectorsList.appendChild(row);
+}
+
+if (addSelectorBtn) {
+    addSelectorBtn.addEventListener("click", () => addSelectorRow());
+}
+
+// Initialize selector list with 1 default row
+if (selectorsList && selectorsList.children.length === 0) {
+    addSelectorRow("items", "");
+}
+
+// Timeout Slider display sync
+const timeoutSlider = document.getElementById("timeoutSlider");
+const timeoutDisplay = document.getElementById("timeoutDisplay");
+if (timeoutSlider && timeoutDisplay) {
+    timeoutSlider.addEventListener("input", () => {
+        timeoutDisplay.innerText = `${timeoutSlider.value}s`;
+    });
+}
+
+// Browser emulation change handler
+const browserEmulation = document.getElementById("browserEmulation");
+const customUaGroup = document.getElementById("customUaGroup");
+if (browserEmulation && customUaGroup) {
+    browserEmulation.addEventListener("change", () => {
+        customUaGroup.style.display = browserEmulation.value === "custom" ? "flex" : "none";
+    });
+}
+
+// 1-Click Live Test Presets click
 document.querySelectorAll(".preset-chips .chip").forEach(chip => {
     chip.addEventListener("click", () => {
         document.getElementById("targetUrl").value = chip.dataset.url;
-        document.getElementById("customName").value = chip.dataset.selName;
-        document.getElementById("customSelector").value = chip.dataset.sel;
+        if (selectorsList) {
+            selectorsList.innerHTML = "";
+            addSelectorRow(chip.dataset.selName || "items", chip.dataset.sel || "", "text");
+        }
         startScrape();
     });
 });
@@ -68,17 +140,33 @@ async function startScrape() {
         latencyDisplay.innerText = elapsed.toFixed(2) + "s";
     }, 30);
 
-    const customName = document.getElementById("customName").value.trim();
-    const customSelector = document.getElementById("customSelector").value.trim();
-    const bypassCache = document.getElementById("bypassCache").checked;
-
+    // Collect custom selectors from dynamic rows
     const custom_selectors = [];
-    if (customSelector) {
-        custom_selectors.push({
-            name: customName || "custom",
-            selector: customSelector
-        });
+    document.querySelectorAll("#customSelectorsList .selector-row").forEach(row => {
+        const nameInput = row.querySelector(".field-name").value.trim();
+        const selInput = row.querySelector(".field-sel").value.trim();
+        const attrInput = row.querySelector(".field-attr").value.trim();
+        if (selInput) {
+            custom_selectors.push({
+                name: nameInput || "custom",
+                selector: selInput,
+                attribute: attrInput || "text"
+            });
+        }
+    });
+
+    // Resolve user agent and timeout
+    let effUserAgent = null;
+    if (browserEmulation) {
+        if (browserEmulation.value === "custom") {
+            effUserAgent = document.getElementById("customUaInput") ? document.getElementById("customUaInput").value.trim() : null;
+        } else if (browserEmulation.value) {
+            effUserAgent = browserEmulation.value;
+        }
     }
+
+    const effTimeout = timeoutSlider ? parseFloat(timeoutSlider.value) : 12.0;
+    const bypassCache = document.getElementById("bypassCache") ? document.getElementById("bypassCache").checked : false;
 
     try {
         const res = await fetch("/api/scrape", {
@@ -87,7 +175,9 @@ async function startScrape() {
             body: JSON.stringify({
                 url: urlInput,
                 custom_selectors: custom_selectors,
-                bypass_cache: bypassCache
+                bypass_cache: bypassCache,
+                user_agent: effUserAgent,
+                timeout_seconds: effTimeout
             })
         });
 
@@ -120,6 +210,12 @@ async function startScrape() {
             if (errorBox) errorBox.style.display = "none";
             renderResults(data);
             resultsWrapper.style.display = "block";
+            // Reset search filter
+            const filterInput = document.getElementById("resultsFilterInput");
+            if (filterInput) {
+                filterInput.value = "";
+                applyResultsFilter();
+            }
         } else {
             resultsWrapper.style.display = "none";
             if (errorBox) {
@@ -145,6 +241,9 @@ async function startScrape() {
     }
 }
 
+// =========================================================
+// RENDER EXTRACTION RESULTS
+// =========================================================
 function renderResults(data) {
     // 1. Overview
     document.getElementById("pageTitle").innerText = data.title || "No Title Found";
@@ -194,7 +293,7 @@ function renderResults(data) {
             customContent.appendChild(box);
         }
     } else {
-        customContent.innerHTML = `<p style="color:var(--text-muted);font-size:13px;">No custom selector specified. Expand "Custom CSS Selectors & Options" above to target specific tags, classes, or IDs.</p>`;
+        customContent.innerHTML = `<p style="color:var(--text-muted);font-size:13px;">No custom selector specified. Expand "Advanced Selectors & Crawler Controls" above to target specific tags, classes, or IDs.</p>`;
     }
     document.getElementById("customCount").innerText = customCountTotal;
 
@@ -232,8 +331,184 @@ function renderResults(data) {
     });
     document.getElementById("imagesCount").innerText = (data.images || []).length;
 
-    // 6. Raw JSON
+    // 6. Extracted Tables Matrix [NEW]
+    const tablesContent = document.getElementById("tablesContent");
+    const tablesCount = document.getElementById("tablesCount");
+    if (tablesContent) {
+        tablesContent.innerHTML = "";
+        const tblList = data.tables || [];
+        if (tablesCount) tablesCount.innerText = tblList.length;
+
+        if (tblList.length > 0) {
+            tblList.forEach((tbl, idx) => {
+                const box = document.createElement("div");
+                box.className = "extracted-table-box";
+
+                let headerHtml = "";
+                if (tbl.headers && tbl.headers.length > 0) {
+                    headerHtml = `<thead><tr>${tbl.headers.map(h => `<th>${escapeHtml(h)}</th>`).join("")}</tr></thead>`;
+                }
+
+                let bodyHtml = "";
+                if (tbl.rows && tbl.rows.length > 0) {
+                    bodyHtml = `<tbody>${tbl.rows.map(r => `<tr>${r.map(c => `<td>${escapeHtml(c)}</td>`).join("")}</tr>`).join("")}</tbody>`;
+                }
+
+                box.innerHTML = `
+                    <div class="extracted-table-header">
+                        <h5>📊 Table #${idx + 1} (${tbl.rows ? tbl.rows.length : 0} rows)</h5>
+                        <button type="button" class="btn-outline btn-copy-tbl" data-tbl-idx="${idx}">📋 Copy Table CSV</button>
+                    </div>
+                    <div class="table-responsive-scroll">
+                        <table class="data-table">
+                            ${headerHtml}
+                            ${bodyHtml}
+                        </table>
+                    </div>
+                `;
+                tablesContent.appendChild(box);
+            });
+
+            // Bind copy buttons
+            tablesContent.querySelectorAll(".btn-copy-tbl").forEach(btn => {
+                btn.addEventListener("click", () => {
+                    const idx = parseInt(btn.dataset.tblIdx, 10);
+                    const tbl = tblList[idx];
+                    if (!tbl) return;
+                    let csv = "";
+                    if (tbl.headers && tbl.headers.length) {
+                        csv += tbl.headers.map(h => `"${String(h).replace(/"/g, '""')}"`).join(",") + "\n";
+                    }
+                    (tbl.rows || []).forEach(row => {
+                        csv += row.map(c => `"${String(c).replace(/"/g, '""')}"`).join(",") + "\n";
+                    });
+                    navigator.clipboard.writeText(csv);
+                    btn.innerText = "✅ Copied!";
+                    setTimeout(() => { btn.innerText = "📋 Copy Table CSV"; }, 2000);
+                });
+            });
+        } else {
+            tablesContent.innerHTML = `<p style="color:var(--text-muted);font-size:13px;">No HTML &lt;table&gt; elements detected on this webpage.</p>`;
+        }
+    }
+
+    // 7. Page Meta Tags & Directives [NEW]
+    const metaTagsContent = document.getElementById("metaTagsContent");
+    const metaCount = document.getElementById("metaCount");
+    if (metaTagsContent) {
+        metaTagsContent.innerHTML = "";
+        const metas = data.meta_tags || {};
+        const metaKeys = Object.keys(metas);
+        if (metaCount) metaCount.innerText = metaKeys.length;
+
+        if (metaKeys.length > 0) {
+            let rowsHtml = metaKeys.map(k => `
+                <tr>
+                    <td class="meta-name">${escapeHtml(k)}</td>
+                    <td class="meta-content">${escapeHtml(metas[k])}</td>
+                </tr>
+            `).join("");
+
+            metaTagsContent.innerHTML = `
+                <table class="meta-table">
+                    <thead>
+                        <tr>
+                            <th>Directive / Property</th>
+                            <th>Tag Content</th>
+                        </tr>
+                    </thead>
+                    <tbody>${rowsHtml}</tbody>
+                </table>
+            `;
+        } else {
+            metaTagsContent.innerHTML = `<p style="color:var(--text-muted);font-size:13px;">No &lt;meta&gt; tags extracted from this document.</p>`;
+        }
+    }
+
+    // 8. Raw JSON
     document.getElementById("rawJsonCode").innerText = JSON.stringify(data, null, 2);
+}
+
+// =========================================================
+// LIVE SEARCH FILTER
+// =========================================================
+const resultsFilterInput = document.getElementById("resultsFilterInput");
+const clearFilterBtn = document.getElementById("clearFilterBtn");
+const filterMatchesCount = document.getElementById("filterMatchesCount");
+
+function applyResultsFilter() {
+    if (!resultsFilterInput) return;
+    const q = (resultsFilterInput.value || "").toLowerCase().trim();
+
+    if (!q) {
+        if (clearFilterBtn) clearFilterBtn.style.display = "none";
+        if (filterMatchesCount) filterMatchesCount.innerText = "";
+        document.querySelectorAll("#headingsList li, #linksList li, .custom-field-box, .extracted-table-box, .meta-table tbody tr, .img-card").forEach(el => {
+            el.style.display = "";
+        });
+        return;
+    }
+
+    if (clearFilterBtn) clearFilterBtn.style.display = "inline-block";
+    let matches = 0;
+
+    // Filter headings
+    document.querySelectorAll("#headingsList li").forEach(el => {
+        const match = el.textContent.toLowerCase().includes(q);
+        el.style.display = match ? "" : "none";
+        if (match) matches++;
+    });
+
+    // Filter links
+    document.querySelectorAll("#linksList li").forEach(el => {
+        const match = el.textContent.toLowerCase().includes(q);
+        el.style.display = match ? "" : "none";
+        if (match) matches++;
+    });
+
+    // Filter custom fields
+    document.querySelectorAll(".custom-field-box").forEach(el => {
+        const match = el.textContent.toLowerCase().includes(q);
+        el.style.display = match ? "" : "none";
+        if (match) matches++;
+    });
+
+    // Filter tables
+    document.querySelectorAll(".extracted-table-box").forEach(el => {
+        const match = el.textContent.toLowerCase().includes(q);
+        el.style.display = match ? "" : "none";
+        if (match) matches++;
+    });
+
+    // Filter meta tags
+    document.querySelectorAll(".meta-table tbody tr").forEach(el => {
+        const match = el.textContent.toLowerCase().includes(q);
+        el.style.display = match ? "" : "none";
+        if (match) matches++;
+    });
+
+    // Filter images
+    document.querySelectorAll(".img-card").forEach(el => {
+        const match = el.textContent.toLowerCase().includes(q);
+        el.style.display = match ? "" : "none";
+        if (match) matches++;
+    });
+
+    if (filterMatchesCount) {
+        filterMatchesCount.innerText = `${matches} items matching`;
+    }
+}
+
+if (resultsFilterInput) {
+    resultsFilterInput.addEventListener("input", applyResultsFilter);
+}
+
+if (clearFilterBtn) {
+    clearFilterBtn.addEventListener("click", () => {
+        resultsFilterInput.value = "";
+        applyResultsFilter();
+        resultsFilterInput.focus();
+    });
 }
 
 // Helpers
@@ -247,41 +522,23 @@ function escapeHtml(text) {
         .replace(/'/g, "&#039;");
 }
 
-// Export actions
-document.getElementById("copyJsonBtn").addEventListener("click", () => {
-    if (!currentData) return;
-    navigator.clipboard.writeText(JSON.stringify(currentData, null, 2));
-    alert("JSON copied to clipboard!");
-});
-
-document.getElementById("downloadJsonBtn").addEventListener("click", () => {
-    if (!currentData) return;
-    const blob = new Blob([JSON.stringify(currentData, null, 2)], { type: "application/json" });
-    const url = URL.createObjectURL(blob);
-    const a = document.createElement("a");
-    a.href = url;
-    a.download = `scrape_${Date.now()}.json`;
-    a.click();
-    URL.revokeObjectURL(url);
-});
-
-document.getElementById("downloadCsvBtn").addEventListener("click", () => {
-    if (!currentData) return;
+function buildCsvContent(data) {
+    if (!data) return "";
     let csv = "Type,Field,Value\n";
-    csv += `"Metadata","Title","${(currentData.title || '').replace(/"/g, '""')}"\n`;
-    csv += `"Metadata","URL","${(currentData.url || '').replace(/"/g, '""')}"\n`;
-    csv += `"Metadata","Description","${(currentData.description || '').replace(/"/g, '""')}"\n`;
+    csv += `"Metadata","Title","${(data.title || '').replace(/"/g, '""')}"\n`;
+    csv += `"Metadata","URL","${(data.url || '').replace(/"/g, '""')}"\n`;
+    csv += `"Metadata","Description","${(data.description || '').replace(/"/g, '""')}"\n`;
 
-    (currentData.headings || []).forEach(h => {
+    (data.headings || []).forEach(h => {
         csv += `"Heading","${h.tag}","${h.text.replace(/"/g, '""')}"\n`;
     });
 
-    (currentData.links || []).forEach(l => {
+    (data.links || []).forEach(l => {
         csv += `"Link","${(l.text || '').replace(/"/g, '""')}","${l.url.replace(/"/g, '""')}"\n`;
     });
 
-    if (currentData.custom_data) {
-        for (const [key, val] of Object.entries(currentData.custom_data)) {
+    if (data.custom_data) {
+        for (const [key, val] of Object.entries(data.custom_data)) {
             if (Array.isArray(val)) {
                 val.forEach(item => {
                     csv += `"Custom","${key}","${String(item).replace(/"/g, '""')}"\n`;
@@ -292,18 +549,113 @@ document.getElementById("downloadCsvBtn").addEventListener("click", () => {
         }
     }
 
-    const blob = new Blob([csv], { type: "text/csv;charset=utf-8;" });
-    const url = URL.createObjectURL(blob);
-    const a = document.createElement("a");
-    a.href = url;
-    a.download = `scrape_${Date.now()}.csv`;
-    a.click();
-    URL.revokeObjectURL(url);
-});
+    if (data.meta_tags) {
+        for (const [mName, mVal] of Object.entries(data.meta_tags)) {
+            csv += `"Meta","${mName}","${String(mVal).replace(/"/g, '""')}"\n`;
+        }
+    }
 
-// GA4 Traffic Generator Handler
+    return csv;
+}
+
+// Export actions
+const copyJsonBtn = document.getElementById("copyJsonBtn");
+if (copyJsonBtn) {
+    copyJsonBtn.addEventListener("click", () => {
+        if (!currentData) return;
+        navigator.clipboard.writeText(JSON.stringify(currentData, null, 2));
+        copyJsonBtn.innerText = "✅ JSON Copied!";
+        setTimeout(() => { copyJsonBtn.innerText = "📋 Copy JSON"; }, 2000);
+    });
+}
+
+const copyCsvBtn = document.getElementById("copyCsvBtn");
+if (copyCsvBtn) {
+    copyCsvBtn.addEventListener("click", () => {
+        if (!currentData) return;
+        const csv = buildCsvContent(currentData);
+        navigator.clipboard.writeText(csv);
+        copyCsvBtn.innerText = "✅ CSV Copied!";
+        setTimeout(() => { copyCsvBtn.innerText = "📋 Copy CSV"; }, 2000);
+    });
+}
+
+const copyTextBtn = document.getElementById("copyTextBtn");
+if (copyTextBtn) {
+    copyTextBtn.addEventListener("click", () => {
+        if (!currentData) return;
+        navigator.clipboard.writeText(currentData.text_sample || "");
+        copyTextBtn.innerText = "✅ Text Copied!";
+        setTimeout(() => { copyTextBtn.innerText = "📄 Copy Text"; }, 2000);
+    });
+}
+
+const downloadJsonBtn = document.getElementById("downloadJsonBtn");
+if (downloadJsonBtn) {
+    downloadJsonBtn.addEventListener("click", () => {
+        if (!currentData) return;
+        const blob = new Blob([JSON.stringify(currentData, null, 2)], { type: "application/json" });
+        const url = URL.createObjectURL(blob);
+        const a = document.createElement("a");
+        a.href = url;
+        a.download = `scrape_${Date.now()}.json`;
+        a.click();
+        URL.revokeObjectURL(url);
+    });
+}
+
+const downloadCsvBtn = document.getElementById("downloadCsvBtn");
+if (downloadCsvBtn) {
+    downloadCsvBtn.addEventListener("click", () => {
+        if (!currentData) return;
+        const csv = buildCsvContent(currentData);
+        const blob = new Blob([csv], { type: "text/csv;charset=utf-8;" });
+        const url = URL.createObjectURL(blob);
+        const a = document.createElement("a");
+        a.href = url;
+        a.download = `scrape_${Date.now()}.csv`;
+        a.click();
+        URL.revokeObjectURL(url);
+    });
+}
+
+// =========================================================
+// GA4 ACTIVE USERS TRAFFIC ENGINE
+// =========================================================
 let currentTrafficJobId = null;
 let trafficPollInterval = null;
+
+// Quick campaign presets click
+document.querySelectorAll(".ga-campaign-presets .ga-preset-btn").forEach(btn => {
+    btn.addEventListener("click", () => {
+        if (btn.dataset.users) document.getElementById("gaUserCount").value = btn.dataset.users;
+        if (btn.dataset.dur !== undefined) document.getElementById("gaDuration").value = btn.dataset.dur;
+        if (btn.dataset.loc) document.getElementById("gaLocation").value = btn.dataset.loc;
+        if (btn.dataset.ref) document.getElementById("gaReferrer").value = btn.dataset.ref;
+        if (btn.dataset.event) document.getElementById("gaEventType").value = btn.dataset.event;
+        const refGroup = document.getElementById("gaCustomReferrerGroup");
+        if (refGroup) refGroup.style.display = "none";
+        document.getElementById("gaUserCount").focus();
+    });
+});
+
+// Referrer selection change
+const gaReferrer = document.getElementById("gaReferrer");
+const gaCustomReferrerGroup = document.getElementById("gaCustomReferrerGroup");
+if (gaReferrer && gaCustomReferrerGroup) {
+    gaReferrer.addEventListener("change", () => {
+        gaCustomReferrerGroup.style.display = gaReferrer.value === "custom" ? "flex" : "none";
+    });
+}
+
+// Concurrency slider
+const gaConcurrency = document.getElementById("gaConcurrency");
+const concurrencyDisplay = document.getElementById("concurrencyDisplay");
+if (gaConcurrency && concurrencyDisplay) {
+    gaConcurrency.addEventListener("input", () => {
+        concurrencyDisplay.innerText = `${gaConcurrency.value} streams`;
+    });
+}
 
 const sendTrafficBtn = document.getElementById("sendTrafficBtn");
 const cancelTrafficBtn = document.getElementById("cancelTrafficBtn");
@@ -318,12 +670,23 @@ if (sendTrafficBtn) {
         const proxyVal = document.getElementById("gaProxy") ? document.getElementById("gaProxy").value.trim() : "";
         const measurementIdVal = document.getElementById("gaMeasurementId") ? document.getElementById("gaMeasurementId").value.trim() : "";
 
+        let effReferrer = gaReferrer ? gaReferrer.value : "google";
+        if (effReferrer === "custom") {
+            effReferrer = document.getElementById("gaCustomReferrer") ? document.getElementById("gaCustomReferrer").value.trim() : "google";
+        }
+
+        const eventName = document.getElementById("gaEventType") ? document.getElementById("gaEventType").value : "page_view";
+        const concurrencyVal = gaConcurrency ? parseInt(gaConcurrency.value, 10) : 40;
+        const utmSource = document.getElementById("utmSource") ? document.getElementById("utmSource").value.trim() : null;
+        const utmMedium = document.getElementById("utmMedium") ? document.getElementById("utmMedium").value.trim() : null;
+        const utmCampaign = document.getElementById("utmCampaign") ? document.getElementById("utmCampaign").value.trim() : null;
+
         const statusBox = document.getElementById("gaStatusBox");
         const btnSpinner = document.getElementById("gaSpinner");
         const btnText = document.getElementById("gaBtnText");
 
         if (!urlInput) {
-            alert("Please enter the target website URL above first (e.g. https://kraviona.site)!");
+            alert("Please enter the target website URL above first (e.g. https://lightningscraper.vercel.app)!");
             return;
         }
 
@@ -341,7 +704,8 @@ if (sendTrafficBtn) {
             ⏳ <b>Starting Traffic Job:</b><br>
             🎯 <b>Target:</b> ${urlInput} | <b>Users:</b> ${userCount} (${durationDesc})<br>
             🌍 <b>Location:</b> ${locationVal.toUpperCase()} | 📱 <b>Devices:</b> ${deviceVal.toUpperCase()}<br>
-            🛡️ <b>Proxy Engine:</b> ${proxyVal ? 'Custom Active' : 'Auto Live Verified International Proxies'}${measurementIdVal ? `<br>🏷️ <b>Specified Tag:</b> <code>${measurementIdVal}</code>` : ''}
+            🔗 <b>Referrer:</b> ${effReferrer} | ⚡ <b>Event:</b> ${eventName} (${concurrencyVal} streams)<br>
+            🛡️ <b>Proxy Engine:</b> ${proxyVal ? 'Custom Active' : 'Auto Live Verified Multi-Country'}${measurementIdVal ? `<br>🏷️ <b>Specified Tag:</b> <code>${measurementIdVal}</code>` : ''}
         `;
 
         // Open live monitor deck
@@ -357,7 +721,6 @@ if (sendTrafficBtn) {
             document.getElementById("kpiMeasurementId").innerText = measurementIdVal || "Detecting...";
             document.getElementById("monitorStatusBadge").innerText = "ACTIVE RUNNING";
             document.getElementById("monitorStatusBadge").className = "monitor-badge";
-            // Smooth scroll to monitor deck
             monitorDeck.scrollIntoView({ behavior: 'smooth', block: 'start' });
         }
 
@@ -372,8 +735,13 @@ if (sendTrafficBtn) {
                     device: deviceVal,
                     location: locationVal,
                     proxy: proxyVal || null,
-                    concurrency: 40,
-                    measurement_id: measurementIdVal || null
+                    concurrency: concurrencyVal,
+                    measurement_id: measurementIdVal || null,
+                    referrer: effReferrer,
+                    utm_source: utmSource || null,
+                    utm_medium: utmMedium || null,
+                    utm_campaign: utmCampaign || null,
+                    event_name: eventName
                 })
             });
 
@@ -505,7 +873,9 @@ if (cancelTrafficBtn) {
     });
 }
 
-// Enterprise Light/Dark Theme Switcher
+// =========================================================
+// THEME SWITCHER
+// =========================================================
 const themeToggleBtn = document.getElementById("themeToggleBtn");
 const themeIcon = document.getElementById("themeIcon");
 const themeText = document.getElementById("themeText");
@@ -523,7 +893,6 @@ function applyTheme(theme) {
     localStorage.setItem("lightning_theme", theme);
 }
 
-// Set Light Theme by default as requested by user
 const savedTheme = localStorage.getItem("lightning_theme") || "light";
 applyTheme(savedTheme);
 
@@ -534,6 +903,3 @@ if (themeToggleBtn) {
         applyTheme(newTheme);
     });
 }
-
-
-

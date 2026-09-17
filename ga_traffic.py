@@ -22,6 +22,16 @@ DEVICE_PROFILES = {
     ]
 }
 
+REFERRER_PROFILES: Dict[str, tuple] = {
+    "google": ("https://www.google.com/", "google", "organic"),
+    "bing": ("https://www.bing.com/", "bing", "organic"),
+    "facebook": ("https://www.facebook.com/", "facebook", "social"),
+    "twitter": ("https://t.co/", "twitter", "social"),
+    "reddit": ("https://www.reddit.com/", "reddit", "social"),
+    "youtube": ("https://www.youtube.com/", "youtube", "social"),
+    "direct": ("", "", ""),
+}
+
 # Real tested, high-speed HTTP proxies from multiple countries
 LIVE_VERIFIED_PROXIES = [
     # Germany
@@ -118,13 +128,34 @@ class GA4TrafficGenerator:
         measurement_id: str,
         target_url: str,
         proxy_info: dict,
-        device_choice: str
+        device_choice: str,
+        referrer: Optional[str] = "google",
+        utm_source: Optional[str] = None,
+        utm_medium: Optional[str] = None,
+        utm_campaign: Optional[str] = None,
+        event_name: Optional[str] = "page_view"
     ) -> bool:
         """Sends hit connected through proxy tunnel, with direct fallback"""
         client_id = f"{random.randint(100000000, 999999999)}.{int(time.time()) - random.randint(0, 300)}"
         session_id = str(int(time.time()) - random.randint(0, 120))
         dev = self._get_device(device_choice)
         proxy_str = proxy_info["proxy"]
+
+        # Resolve Referrer and UTM attribution
+        ref_key = (referrer or "google").lower().strip()
+        ref_url = ""
+        def_source, def_medium = "", ""
+        if ref_key in REFERRER_PROFILES:
+            ref_url, def_source, def_medium = REFERRER_PROFILES[ref_key]
+        elif ref_key.startswith("http://") or ref_key.startswith("https://"):
+            ref_url = ref_key
+        elif ref_key != "direct":
+            ref_url = f"https://www.{ref_key}.com/"
+
+        eff_source = (utm_source or "").strip() or def_source
+        eff_medium = (utm_medium or "").strip() or def_medium
+        eff_campaign = (utm_campaign or "").strip()
+        eff_event = (event_name or "page_view").strip() or "page_view"
 
         params = {
             "v": "2",
@@ -141,15 +172,24 @@ class GA4TrafficGenerator:
             "_ee": "1"
         }
 
+        if ref_url:
+            params["dr"] = ref_url
+        if eff_source:
+            params["cs"] = eff_source
+        if eff_medium:
+            params["cm"] = eff_medium
+        if eff_campaign:
+            params["cn"] = eff_campaign
+
         headers = {
             "User-Agent": dev["ua"],
             "Origin": target_url.rstrip("/"),
-            "Referer": target_url
+            "Referer": ref_url or target_url
         }
 
         try:
             async with httpx.AsyncClient(proxy=proxy_str, timeout=3.5, verify=False) as client:
-                params["en"] = "page_view"
+                params["en"] = eff_event
                 r1 = await client.post("https://www.google-analytics.com/g/collect", params=params, headers=headers)
                 
                 params["en"] = "user_engagement"
@@ -164,7 +204,7 @@ class GA4TrafficGenerator:
         # Fallback to direct client if proxy timed out or failed
         try:
             async with httpx.AsyncClient(timeout=3.5, verify=False) as direct_client:
-                params["en"] = "page_view"
+                params["en"] = eff_event
                 r1 = await direct_client.post("https://www.google-analytics.com/g/collect", params=params, headers=headers)
                 params["en"] = "user_engagement"
                 params["_et"] = str(random.randint(7000, 35000))
@@ -183,7 +223,12 @@ class GA4TrafficGenerator:
         location_choice: str = "global",
         proxy_url: Optional[str] = None,
         concurrency: int = 30,
-        custom_measurement_id: Optional[str] = None
+        custom_measurement_id: Optional[str] = None,
+        referrer: Optional[str] = "google",
+        utm_source: Optional[str] = None,
+        utm_medium: Optional[str] = None,
+        utm_campaign: Optional[str] = None,
+        event_name: Optional[str] = "page_view"
     ):
         """Asynchronously executes traffic and streams real-time telemetry into active_traffic_jobs"""
         start_time = time.time()
@@ -231,7 +276,12 @@ class GA4TrafficGenerator:
                     measurement_id=measurement_id,
                     target_url=url,
                     proxy_info=proxy_info,
-                    device_choice=device_choice
+                    device_choice=device_choice,
+                    referrer=referrer,
+                    utm_source=utm_source,
+                    utm_medium=utm_medium,
+                    utm_campaign=utm_campaign,
+                    event_name=event_name
                 )
 
                 if job_id in active_traffic_jobs:
@@ -252,7 +302,9 @@ class GA4TrafficGenerator:
                     flag = proxy_info.get("flag", "🌐")
                     c_city = proxy_info.get("city", "Cloud")
                     status_badge = "SUCCESS" if ok else "DROPPED"
-                    log_entry = f"[{t_now}] #{idx+1:04d} | {status_badge} | {flag} {c_name} ({c_city}) | {dev.get('model')} | Session active"
+                    ref_disp = (referrer or "google")[:12]
+                    evt_disp = (event_name or "page_view")[:14]
+                    log_entry = f"[{t_now}] #{idx+1:04d} | {status_badge} | {flag} {c_name} ({c_city}) | {dev.get('model')} | {ref_disp} | {evt_disp}"
                     job_data["recent_logs"].append(log_entry)
 
         tasks = [worker(i) for i in range(count)]
@@ -272,7 +324,12 @@ class GA4TrafficGenerator:
         duration_minutes: float = 0.0,
         device_choice: str = "all",
         location_choice: str = "global",
-        proxy_url: Optional[str] = None
+        proxy_url: Optional[str] = None,
+        referrer: Optional[str] = "google",
+        utm_source: Optional[str] = None,
+        utm_medium: Optional[str] = None,
+        utm_campaign: Optional[str] = None,
+        event_name: Optional[str] = "page_view"
     ) -> Dict[str, Any]:
         """Initializes job state structure"""
         if not url.startswith("http://") and not url.startswith("https://"):
@@ -288,6 +345,11 @@ class GA4TrafficGenerator:
             "duration_minutes": duration_minutes,
             "device_choice": device_choice,
             "location_choice": location_choice,
+            "referrer": referrer,
+            "utm_source": utm_source,
+            "utm_medium": utm_medium,
+            "utm_campaign": utm_campaign,
+            "event_name": event_name or "page_view",
             "start_time": time.time(),
             "time_taken_seconds": 0.0,
             "measurement_id": None,
