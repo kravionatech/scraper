@@ -867,11 +867,179 @@ if (cancelTrafficBtn) {
             if (statusBox) {
                 statusBox.innerHTML += `<br><b>Stopping ongoing requests... Please wait a moment.</b>`;
             }
-        } catch (e) {
-            console.error("Failed to cancel job", e);
+// =========================================================
+// GSC (GOOGLE SEARCH CONSOLE) DUAL ENGINE HANDLER
+// =========================================================
+const btnModeGA4 = document.getElementById("btnModeGA4");
+const btnModeGSC = document.getElementById("btnModeGSC");
+const gaControlsContainer = document.getElementById("gaControlsContainer");
+const gscControlsContainer = document.getElementById("gscControlsContainer");
+
+if (btnModeGA4 && btnModeGSC) {
+    btnModeGA4.addEventListener("click", () => {
+        btnModeGA4.classList.add("active");
+        btnModeGSC.classList.remove("active");
+        if (gaControlsContainer) gaControlsContainer.style.display = "block";
+        if (gscControlsContainer) gscControlsContainer.style.display = "none";
+    });
+    btnModeGSC.addEventListener("click", () => {
+        btnModeGSC.classList.add("active");
+        btnModeGA4.classList.remove("active");
+        if (gscControlsContainer) gscControlsContainer.style.display = "block";
+        if (gaControlsContainer) gaControlsContainer.style.display = "none";
+    });
+}
+
+// GSC Query presets click
+document.querySelectorAll(".gsc-preset-chip").forEach(btn => {
+    btn.addEventListener("click", () => {
+        if (btn.dataset.kws) document.getElementById("gscKeywords").value = btn.dataset.kws;
+        if (btn.dataset.domain) document.getElementById("gscGoogleDomain").value = btn.dataset.domain;
+        if (btn.dataset.rank) document.getElementById("gscTargetRank").value = btn.dataset.rank;
+        document.getElementById("gscKeywords").focus();
+    });
+});
+
+const sendGscTrafficBtn = document.getElementById("sendGscTrafficBtn");
+if (sendGscTrafficBtn) {
+    sendGscTrafficBtn.addEventListener("click", async () => {
+        const urlInput = document.getElementById("targetUrl").value.trim();
+        const rawKws = document.getElementById("gscKeywords") ? document.getElementById("gscKeywords").value.trim() : "";
+        const googleDomain = document.getElementById("gscGoogleDomain") ? document.getElementById("gscGoogleDomain").value : "google.com";
+        const clicksCount = parseInt(document.getElementById("gscCount").value, 10) || 500;
+        const targetRank = parseInt(document.getElementById("gscTargetRank").value, 10) || 1;
+        const pingSitemap = document.getElementById("gscPingSitemap") ? document.getElementById("gscPingSitemap").checked : true;
+        const deviceVal = document.getElementById("gscDevice") ? document.getElementById("gscDevice").value : "all";
+
+        const statusBox = document.getElementById("gscStatusBox");
+        const btnSpinner = document.getElementById("gscSpinner");
+        const btnText = document.getElementById("gscBtnText");
+
+        if (!urlInput) {
+            alert("Please enter the target website URL above first!");
+            return;
+        }
+
+        const keywordsList = rawKws.split(",").map(k => k.trim()).filter(k => k.length > 0);
+        if (keywordsList.length === 0) {
+            keywordsList.push("web scraper", "fastest html scraper", "lightning scraper");
+        }
+
+        // Loading UI state
+        sendGscTrafficBtn.disabled = true;
+        btnSpinner.style.display = "inline-block";
+        btnText.innerText = "Dispatching GSC Clicks...";
+        statusBox.style.display = "block";
+        statusBox.className = "ga-status-box info";
+        statusBox.innerHTML = `
+            ⏳ <b>Starting GSC Organic Simulation:</b><br>
+            🎯 <b>Target:</b> ${urlInput} | <b>Clicks:</b> ${clicksCount} on ${googleDomain}<br>
+            🔍 <b>Keywords:</b> ${escapeHtml(keywordsList.slice(0, 3).join(", "))}${keywordsList.length > 3 ? '...' : ''}<br>
+            🏆 <b>Simulated Rank:</b> #${targetRank} | 🤖 <b>Googlebot Ping:</b> ${pingSitemap ? 'Active (sitemap.xml)' : 'Off'}
+        `;
+
+        // Open live monitor deck
+        const monitorDeck = document.getElementById("trafficMonitorDeck");
+        if (monitorDeck) {
+            monitorDeck.style.display = "block";
+            document.getElementById("kpiTotal").innerText = clicksCount;
+            document.getElementById("kpiCompleted").innerText = "0";
+            document.getElementById("kpiFailed").innerText = "0";
+            document.getElementById("kpiProgress").innerText = "0";
+            document.getElementById("kpiProgressBar").style.width = "0%";
+            document.getElementById("kpiRate").innerText = "0.0";
+            document.getElementById("kpiMeasurementId").innerText = googleDomain;
+            document.getElementById("monitorStatusBadge").innerText = "GSC SEARCH ACTIVE";
+            document.getElementById("monitorStatusBadge").className = "monitor-badge";
+            monitorDeck.scrollIntoView({ behavior: 'smooth', block: 'start' });
+        }
+
+        try {
+            const resp = await fetch("/api/gsc-traffic", {
+                method: "POST",
+                headers: { "Content-Type": "application/json" },
+                body: JSON.stringify({
+                    url: urlInput,
+                    keywords: keywordsList,
+                    google_domain: googleDomain,
+                    clicks_count: clicksCount,
+                    target_rank: targetRank,
+                    ping_sitemap: pingSitemap,
+                    duration_minutes: 0,
+                    device: deviceVal,
+                    location: "global",
+                    concurrency: 30
+                })
+            });
+
+            const data = await resp.json();
+            if (!resp.ok) {
+                throw new Error(data.detail || "Failed to trigger GSC traffic.");
+            }
+
+            currentTrafficJobId = data.job_id;
+
+            // Poll live telemetry
+            clearInterval(trafficPollInterval);
+            trafficPollInterval = setInterval(async () => {
+                if (!currentTrafficJobId) {
+                    clearInterval(trafficPollInterval);
+                    return;
+                }
+
+                try {
+                    const stResp = await fetch(`/api/ga-status/${currentTrafficJobId}`);
+                    if (!stResp.ok) return;
+                    const st = await stResp.json();
+
+                    document.getElementById("kpiCompleted").innerText = st.completed || 0;
+                    document.getElementById("kpiTotal").innerText = st.target_count || clicksCount;
+                    document.getElementById("kpiFailed").innerText = st.failed || 0;
+                    document.getElementById("kpiProgress").innerText = st.progress_percent || 0;
+                    document.getElementById("kpiProgressBar").style.width = `${Math.min(st.progress_percent || 0, 100)}%`;
+                    document.getElementById("kpiRate").innerText = st.rate_per_sec || 0;
+                    document.getElementById("kpiElapsed").innerText = `${st.elapsed_seconds || 0}s`;
+
+                    // Update Live Terminal Logs
+                    const logsEl = document.getElementById("terminalLogs");
+                    if (logsEl && st.recent_logs && st.recent_logs.length > 0) {
+                        logsEl.innerHTML = st.recent_logs.map(line => {
+                            const isSucc = line.includes("GSC CLICK") || line.includes("GOOGLEBOT");
+                            return `<div class="log-line ${isSucc ? 'success' : 'dropped'}">${line}</div>`;
+                        }).join('');
+                        logsEl.scrollTop = logsEl.scrollHeight;
+                    }
+
+                    if (st.status === "completed" || st.status === "cancelled" || st.status === "failed") {
+                        clearInterval(trafficPollInterval);
+                        sendGscTrafficBtn.disabled = false;
+                        btnSpinner.style.display = "none";
+                        btnText.innerText = "🚀 Launch GSC Organic Clicks";
+
+                        statusBox.className = "ga-status-box success";
+                        statusBox.innerHTML = `
+                            <b>✅ GSC Organic Search Simulation Completed!</b><br>
+                            ⚡ <b>Organic Clicks Delivered:</b> ${st.completed} / ${st.target_count}<br>
+                            🌐 <b>Search Engine:</b> https://www.${googleDomain}/<br>
+                            🤖 <b>Googlebot Re-index:</b> Sitemap Ping dispatched to Google Search crawlers.<br>
+                            📊 <b>Status:</b> Check your Google Search Console Performance Report (updated within 24-48 hours by Google).
+                        `;
+                    }
+                } catch (polErr) {
+                    console.error("GSC poll error", polErr);
+                }
+            }, 600);
+
+        } catch (err) {
+            statusBox.className = "ga-status-box error";
+            statusBox.innerHTML = `❌ <b>Error:</b> ${err.message}`;
+            sendGscTrafficBtn.disabled = false;
+            btnSpinner.style.display = "none";
+            btnText.innerText = "🚀 Launch GSC Organic Clicks";
         }
     });
 }
+
 
 // =========================================================
 // THEME SWITCHER

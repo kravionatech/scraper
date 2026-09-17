@@ -60,6 +60,18 @@ class TrafficRequest(BaseModel):
     utm_campaign: Optional[str] = None
     event_name: Optional[str] = "page_view"
 
+class GSCRequest(BaseModel):
+    url: str
+    keywords: Optional[List[str]] = None
+    google_domain: Optional[str] = "google.com"
+    clicks_count: Optional[int] = 500
+    target_rank: Optional[int] = 1
+    ping_sitemap: Optional[bool] = True
+    duration_minutes: Optional[float] = 0.0
+    device: Optional[str] = "all"
+    location: Optional[str] = "global"
+    concurrency: Optional[int] = 30
+
 class CancelRequest(BaseModel):
     job_id: str
 
@@ -130,6 +142,54 @@ async def ga_traffic_endpoint(payload: TrafficRequest):
         "job_id": job_id,
         "status": "running",
         "message": f"Job {job_id} initiated. Monitoring live telemetry...",
+        "target_count": count
+    }
+
+@app.post("/api/gsc-traffic")
+@app.post("/gsc-traffic")
+async def gsc_traffic_endpoint(payload: GSCRequest):
+    raw_url = (payload.url or "").strip()
+    if not raw_url:
+        raise HTTPException(status_code=400, detail="URL cannot be empty.")
+    count = min(max(payload.clicks_count or 100, 1), 5000)
+    concurrency = min(max(payload.concurrency or 30, 5), 80)
+    duration_minutes = max(float(payload.duration_minutes or 0.0), 0.0)
+    job_id = str(uuid.uuid4())[:8]
+
+    keywords = payload.keywords or ["web scraper online", "fastest html scraper", "extract website data"]
+
+    ga_generator.create_traffic_job(
+        job_id=job_id,
+        url=raw_url,
+        count=count,
+        duration_minutes=duration_minutes,
+        device_choice=payload.device or "all",
+        location_choice=payload.location or "global",
+        referrer=f"google-{payload.google_domain or 'google.com'}",
+        event_name="gsc_organic_click"
+    )
+
+    asyncio.create_task(
+        ga_generator.start_background_gsc_traffic(
+            job_id=job_id,
+            url=raw_url,
+            keywords=keywords,
+            google_domain=payload.google_domain or "google.com",
+            count=count,
+            target_rank=payload.target_rank or 1,
+            ping_sitemap=payload.ping_sitemap if payload.ping_sitemap is not None else True,
+            duration_minutes=duration_minutes,
+            device_choice=payload.device or "all",
+            location_choice=payload.location or "global",
+            concurrency=concurrency
+        )
+    )
+
+    return {
+        "success": True,
+        "job_id": job_id,
+        "status": "running",
+        "message": f"GSC Organic Click Simulation {job_id} initiated.",
         "target_count": count
     }
 

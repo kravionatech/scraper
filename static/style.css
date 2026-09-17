@@ -2376,3 +2376,42 @@ body {
         flex-wrap: wrap;
     }
 }
+
+/* Booster Mode Switcher */
+.booster-mode-switcher {
+    display: flex;
+    gap: 8px;
+    margin-bottom: 20px;
+    background: var(--bg-surface);
+    padding: 6px;
+    border-radius: 10px;
+    border: 1px solid var(--border-color);
+}
+
+.mode-switch-btn {
+    flex: 1;
+    background: transparent;
+    border: none;
+    color: var(--text-muted);
+    font-size: 13px;
+    font-weight: 700;
+    padding: 9px 16px;
+    border-radius: 8px;
+    cursor: pointer;
+    transition: all 0.25s ease;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 8px;
+}
+
+.mode-switch-btn.active {
+    background: var(--accent-blue);
+    color: #ffffff;
+    box-shadow: 0 4px 12px rgba(59, 130, 246, 0.35);
+}
+
+.mode-switch-btn:hover:not(.active) {
+    color: var(--text-main);
+    background: rgba(255, 255, 255, 0.05);
+}

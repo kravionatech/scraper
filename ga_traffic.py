@@ -361,6 +361,200 @@ class GA4TrafficGenerator:
         active_traffic_jobs[job_id] = job_info
         return job_info
 
+    async def ping_google_sitemap(self, sitemap_url: str) -> bool:
+        """Pings Google and Bing search indexing crawlers to request instant re-crawl of sitemap"""
+        try:
+            async with httpx.AsyncClient(timeout=6.0, verify=False) as client:
+                google_ping = f"https://www.google.com/ping?sitemap={sitemap_url}"
+                bing_ping = f"https://www.bing.com/ping?sitemap={sitemap_url}"
+                await asyncio.gather(
+                    client.get(google_ping),
+                    client.get(bing_ping),
+                    return_exceptions=True
+                )
+            return True
+        except Exception as e:
+            print("Sitemap ping error:", e)
+            return False
+
+    async def _send_single_gsc_organic_hit(
+        self,
+        measurement_id: str,
+        target_url: str,
+        keyword: str,
+        google_domain: str,
+        rank_pos: int,
+        proxy_info: dict,
+        device_choice: str
+    ) -> bool:
+        """Simulates authentic Google Organic Search click with Google SERP referral headers"""
+        client_id = f"{random.randint(100000000, 999999999)}.{int(time.time()) - random.randint(0, 300)}"
+        session_id = str(int(time.time()) - random.randint(0, 120))
+        dev = self._get_device(device_choice)
+        proxy_str = proxy_info["proxy"]
+
+        # Form authentic Google SERP referrer
+        serp_ref = f"https://www.{google_domain}/"
+        encoded_kw = keyword.replace(" ", "+")
+        google_search_url = f"https://www.{google_domain}/search?q={encoded_kw}"
+
+        params = {
+            "v": "2",
+            "tid": measurement_id,
+            "cid": client_id,
+            "sid": session_id,
+            "sct": str(random.randint(1, 4)),
+            "seg": "1",
+            "dl": target_url,
+            "dr": serp_ref,
+            "ul": "en-us",
+            "sr": dev["sr"],
+            "_s": "1",
+            "_p": str(random.randint(1000000, 9999999)),
+            "_ee": "1",
+            "en": "page_view",
+            "cs": "google",
+            "cm": "organic",
+            "ck": keyword,
+            "cn": "organic_search"
+        }
+
+        headers = {
+            "User-Agent": dev["ua"],
+            "Referer": serp_ref,
+            "Origin": f"https://www.{google_domain}",
+            "Sec-Fetch-Site": "cross-site",
+            "Sec-Fetch-Mode": "navigate",
+            "Sec-Fetch-Dest": "document"
+        }
+
+        # 1. Send direct visit to target URL through proxy to trigger site access logs & CDN organic hits
+        try:
+            async with httpx.AsyncClient(proxy=proxy_str, timeout=3.5, verify=False) as direct_c:
+                await direct_c.get(target_url, headers=headers)
+        except Exception:
+            pass
+
+        # 2. Fire Google Analytics / GSC linked telemetry hit
+        try:
+            async with httpx.AsyncClient(proxy=proxy_str, timeout=3.5, verify=False) as client:
+                r1 = await client.post("https://www.google-analytics.com/g/collect", params=params, headers=headers)
+                params["en"] = "user_engagement"
+                params["_et"] = str(random.randint(9000, 45000))
+                r2 = await client.post("https://www.google-analytics.com/g/collect", params=params, headers=headers)
+                return r1.status_code in [200, 204] or r2.status_code in [200, 204]
+        except Exception:
+            pass
+
+        try:
+            async with httpx.AsyncClient(timeout=3.5, verify=False) as dc:
+                params["en"] = "page_view"
+                r1 = await dc.post("https://www.google-analytics.com/g/collect", params=params, headers=headers)
+                return r1.status_code in [200, 204]
+        except Exception:
+            return False
+
+    async def start_background_gsc_traffic(
+        self,
+        job_id: str,
+        url: str,
+        keywords: List[str],
+        google_domain: str = "google.com",
+        count: int = 500,
+        target_rank: int = 1,
+        ping_sitemap: bool = True,
+        duration_minutes: float = 0.0,
+        device_choice: str = "all",
+        location_choice: str = "global",
+        concurrency: int = 30
+    ):
+        start_time = time.time()
+        url = (url or "").strip().strip('\'"')
+        if not url.startswith(("http://", "https://")):
+            url = "https://" + url
+
+        measurement_id = await self.detect_ga_measurement_id(url)
+        if not measurement_id:
+            measurement_id = "G-ZFC3ZK3G68"
+
+        active_traffic_jobs[job_id]["measurement_id"] = measurement_id
+        await self.auto_refresh_proxy_pool()
+
+        # Instant sitemap ping to Googlebot & Bingbot if requested
+        if ping_sitemap:
+            sitemap_url = url.rstrip("/") + "/sitemap.xml"
+            await self.ping_google_sitemap(sitemap_url)
+            t_now = time.strftime("%H:%M:%S")
+            active_traffic_jobs[job_id]["recent_logs"].append(
+                f"[{t_now}] #0000 | GOOGLEBOT | 🤖 Pinged Google Indexing Crawler for {sitemap_url}"
+            )
+
+        clean_keywords = [k.strip() for k in keywords if k.strip()]
+        if not clean_keywords:
+            clean_keywords = ["web scraper online", "fastest html scraper", "extract website data"]
+
+        semaphore = asyncio.Semaphore(concurrency)
+        duration_seconds = max(float(duration_minutes or 0) * 60, 0)
+        delay_between = (duration_seconds / count) if (duration_seconds > 0 and count > 0) else 0
+        proxies_to_use = self.verified_proxies
+
+        async def gsc_worker(idx: int):
+            if active_traffic_jobs.get(job_id, {}).get("cancelled"):
+                return
+
+            async with semaphore:
+                if active_traffic_jobs.get(job_id, {}).get("cancelled"):
+                    return
+
+                if delay_between > 0:
+                    await asyncio.sleep(idx * delay_between)
+                else:
+                    await asyncio.sleep(random.uniform(0.015, 0.05))
+
+                if active_traffic_jobs.get(job_id, {}).get("cancelled"):
+                    return
+
+                proxy_info = proxies_to_use[idx % len(proxies_to_use)]
+                dev = self._get_device(device_choice)
+                kw = random.choice(clean_keywords)
+                rank = random.randint(1, max(target_rank, 1))
+
+                ok = await self._send_single_gsc_organic_hit(
+                    measurement_id=measurement_id,
+                    target_url=url,
+                    keyword=kw,
+                    google_domain=google_domain or "google.com",
+                    rank_pos=rank,
+                    proxy_info=proxy_info,
+                    device_choice=device_choice
+                )
+
+                if job_id in active_traffic_jobs:
+                    job_data = active_traffic_jobs[job_id]
+                    if ok:
+                        job_data["completed"] += 1
+                        c_name = proxy_info.get("country_name", "International")
+                        job_data["country_stats"][c_name] = job_data["country_stats"].get(c_name, 0) + 1
+                        dev_model = dev.get("model", "Device")
+                        job_data["device_stats"][dev_model] = job_data["device_stats"].get(dev_model, 0) + 1
+                    else:
+                        job_data["failed"] += 1
+
+                    t_now = time.strftime("%H:%M:%S")
+                    flag = proxy_info.get("flag", "🌐")
+                    status_badge = "GSC CLICK" if ok else "DROPPED"
+                    log_entry = f"[{t_now}] #{idx+1:04d} | {status_badge} | {flag} {google_domain} | \"{kw}\" (Rank #{rank}) | {dev.get('model')}"
+                    job_data["recent_logs"].append(log_entry)
+
+        tasks = [gsc_worker(i) for i in range(count)]
+        await asyncio.gather(*tasks)
+
+        if job_id in active_traffic_jobs:
+            job_data = active_traffic_jobs[job_id]
+            if not job_data.get("cancelled"):
+                job_data["status"] = "completed"
+            job_data["time_taken_seconds"] = round(time.time() - start_time, 2)
+
     def cancel_job(self, job_id: str) -> bool:
         if job_id in active_traffic_jobs:
             active_traffic_jobs[job_id]["cancelled"] = True

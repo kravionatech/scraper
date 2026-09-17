@@ -294,150 +294,250 @@
 
                     <div id="scrapeErrorBox" class="scrape-error-box" style="display:none;"></div>
 
-                    <!-- GA4 Active User Booster Section -->
+                    <!-- Telemetry & Traffic Booster Section (GA4 + GSC Dual Engine) -->
                     <div class="ga-booster-card">
-                        <div class="ga-header">
-                            <div class="ga-icon-badge">📈</div>
-                            <div class="ga-title-wrap">
-                                <h4>Google Analytics Active Users Booster <span class="badge-pill">Enterprise</span></h4>
-                                <p class="ga-sub">Auto-detects GA4 measurement tag, cycles verified multi-country proxies, rotates real devices, injects UTM campaigns, and streams real-time telemetry.</p>
-                            </div>
+                        <!-- Dual Mode Switcher -->
+                        <div class="booster-mode-switcher">
+                            <button type="button" class="mode-switch-btn active" id="btnModeGA4">📈 GA4 Realtime Active Users</button>
+                            <button type="button" class="mode-switch-btn" id="btnModeGSC">🔍 GSC Organic Search &amp; CTR Booster</button>
                         </div>
 
-                        <!-- 1-Click Fast Traffic Presets -->
-                        <div class="ga-campaign-presets">
-                            <span class="preset-label">Quick Campaigns:</span>
-                            <button type="button" class="ga-preset-btn" data-users="500" data-dur="0" data-loc="global" data-ref="google" data-event="page_view">⚡ 500 Instant Fast</button>
-                            <button type="button" class="ga-preset-btn" data-users="1000" data-dur="2" data-loc="us" data-ref="google" data-event="page_view">🚀 1,000 US Users (2m)</button>
-                            <button type="button" class="ga-preset-btn" data-users="2500" data-dur="5" data-loc="global" data-ref="google" data-event="page_view">📈 2,500 Google Organic (5m)</button>
-                            <button type="button" class="ga-preset-btn" data-users="1500" data-dur="3" data-loc="europe" data-ref="twitter" data-event="user_engagement">🐦 1,500 Social Twitter Surge</button>
+                        <!-- GA4 CONTROLS CONTAINER -->
+                        <div id="gaControlsContainer">
+                            <div class="ga-header">
+                                <div class="ga-icon-badge">📈</div>
+                                <div class="ga-title-wrap">
+                                    <h4>Google Analytics Active Users Booster <span class="badge-pill">Enterprise</span></h4>
+                                    <p class="ga-sub">Auto-detects GA4 measurement tag, cycles verified multi-country proxies, rotates real devices, injects UTM campaigns, and streams real-time telemetry.</p>
+                                </div>
+                            </div>
+
+                            <!-- 1-Click Fast Traffic Presets -->
+                            <div class="ga-campaign-presets">
+                                <span class="preset-label">Quick Campaigns:</span>
+                                <button type="button" class="ga-preset-btn" data-users="500" data-dur="0" data-loc="global" data-ref="google" data-event="page_view">⚡ 500 Instant Fast</button>
+                                <button type="button" class="ga-preset-btn" data-users="1000" data-dur="2" data-loc="us" data-ref="google" data-event="page_view">🚀 1,000 US Users (2m)</button>
+                                <button type="button" class="ga-preset-btn" data-users="2500" data-dur="5" data-loc="global" data-ref="google" data-event="page_view">📈 2,500 Google Organic (5m)</button>
+                                <button type="button" class="ga-preset-btn" data-users="1500" data-dur="3" data-loc="europe" data-ref="twitter" data-event="user_engagement">🐦 1,500 Social Twitter Surge</button>
+                            </div>
+
+                            <!-- 4-Column Primary Controls Grid -->
+                            <div class="ga-controls-grid">
+                                <div class="ga-input-item">
+                                    <label for="gaUserCount">👥 Requests / Users</label>
+                                    <input type="number" id="gaUserCount" class="input-control" value="1000" min="10" max="10000" step="50" />
+                                </div>
+                                <div class="ga-input-item">
+                                    <label for="gaDuration">⏱️ Time (Minutes)</label>
+                                    <input type="number" id="gaDuration" class="input-control" value="0" min="0" max="120" step="1" placeholder="0 = Instant fast" />
+                                </div>
+                                <div class="ga-input-item">
+                                    <label for="gaLocation">🌍 Traffic Location</label>
+                                    <div class="select-wrapper">
+                                        <select id="gaLocation" class="select-control">
+                                            <option value="global" selected>🌐 Global Mix (US, UK, DE, NL, RU)</option>
+                                            <option value="us">🇺🇸 United States (NY, SF, Dallas)</option>
+                                            <option value="europe">🇪🇺 Europe (Germany, France, NL)</option>
+                                            <option value="india">🇮🇳 India (Delhi, Mumbai, Bengaluru)</option>
+                                            <option value="uk">🇬🇧 United Kingdom (London)</option>
+                                            <option value="singapore">🇸🇬 Singapore</option>
+                                        </select>
+                                    </div>
+                                </div>
+                                <div class="ga-input-item">
+                                    <label for="gaDevice">📱 Target Device</label>
+                                    <div class="select-wrapper">
+                                        <select id="gaDevice" class="select-control">
+                                            <option value="all" selected>🔄 Mixed (Mobile 60%, PC 35%)</option>
+                                            <option value="mobile">📱 Mobile Only (iPhone, Galaxy)</option>
+                                            <option value="desktop">💻 Desktop Only (Windows, Mac)</option>
+                                            <option value="tablet">📟 Tablet Only (iPad Air)</option>
+                                        </select>
+                                    </div>
+                                </div>
+                            </div>
+
+                            <!-- Extended Campaign Controls (Traffic Source, Event Type, Concurrency) -->
+                            <div class="ga-controls-grid" style="margin-top: 10px;">
+                                <div class="ga-input-item">
+                                    <label for="gaReferrer">🔗 Traffic Referrer Source</label>
+                                    <div class="select-wrapper">
+                                        <select id="gaReferrer" class="select-control">
+                                            <option value="google" selected>🔍 Google Organic (google.com)</option>
+                                            <option value="direct">🌐 Direct / No Referrer</option>
+                                            <option value="facebook">📘 Facebook (facebook.com)</option>
+                                            <option value="twitter">🐦 X / Twitter (t.co)</option>
+                                            <option value="reddit">👾 Reddit (reddit.com)</option>
+                                            <option value="youtube">📺 YouTube (youtube.com)</option>
+                                            <option value="bing">🔎 Bing (bing.com)</option>
+                                            <option value="custom">⚙️ Custom Referrer URL</option>
+                                        </select>
+                                    </div>
+                                </div>
+                                <div class="ga-input-item" id="gaCustomReferrerGroup" style="display: none;">
+                                    <label for="gaCustomReferrer">Custom Referrer URL</label>
+                                    <input type="text" id="gaCustomReferrer" class="input-control font-mono" placeholder="https://news.ycombinator.com/" />
+                                </div>
+                                <div class="ga-input-item">
+                                    <label for="gaEventType">⚡ GA4 Telemetry Event</label>
+                                    <div class="select-wrapper">
+                                        <select id="gaEventType" class="select-control">
+                                            <option value="page_view" selected>📄 page_view (Standard Page View)</option>
+                                            <option value="user_engagement">⏱️ user_engagement (Active Session)</option>
+                                            <option value="scroll">📜 scroll (90% Depth Read)</option>
+                                            <option value="view_item">🛍️ view_item (E-Commerce Product View)</option>
+                                        </select>
+                                    </div>
+                                </div>
+                                <div class="ga-input-item">
+                                    <label>⚡ Concurrency: <span id="concurrencyDisplay" class="val-pill">40 streams</span></label>
+                                    <div class="range-slider-wrap" style="height: 38px;">
+                                        <input type="range" id="gaConcurrency" min="10" max="80" step="5" value="40" />
+                                    </div>
+                                </div>
+                            </div>
+
+                            <!-- Secondary Controls (Measurement ID + Proxy Tunnel) -->
+                            <div class="ga-extra-grid">
+                                <div class="ga-input-item flex-1">
+                                    <label for="gaMeasurementId">🏷️ GA Measurement ID <span class="opt-label">(Optional)</span></label>
+                                    <input type="text" id="gaMeasurementId" class="input-control font-mono" placeholder="Auto-detects G-XXXXX if empty" />
+                                </div>
+                                <div class="ga-input-item flex-2">
+                                    <label for="gaProxy">🛡️ Proxy Engine: <span class="badge-active">⚡ Auto Live Verified Active</span></label>
+                                    <input type="text" id="gaProxy" class="input-control font-mono" placeholder="Default: Multi-country verified proxies active" />
+                                </div>
+                            </div>
+
+                            <!-- UTM Campaign Builder Collapsible -->
+                            <details class="utm-details-box">
+                                <summary>🎯 UTM Campaign Tags (utm_source, utm_medium, utm_campaign)</summary>
+                                <div class="utm-inputs-grid">
+                                    <div class="utm-input-item">
+                                        <label for="utmSource">utm_source</label>
+                                        <input type="text" id="utmSource" class="input-control" placeholder="e.g. google, newsletter, twitter" />
+                                    </div>
+                                    <div class="utm-input-item">
+                                        <label for="utmMedium">utm_medium</label>
+                                        <input type="text" id="utmMedium" class="input-control" placeholder="e.g. organic, cpc, referral, social" />
+                                    </div>
+                                    <div class="utm-input-item">
+                                        <label for="utmCampaign">utm_campaign</label>
+                                        <input type="text" id="utmCampaign" class="input-control" placeholder="e.g. traffic_surge_2026" />
+                                    </div>
+                                </div>
+                            </details>
+
+                            <!-- Action Bar Row -->
+                            <div class="ga-action-bar">
+                                <div class="ga-action-note">
+                                    <span class="pulse-indicator"></span>
+                                    <span>Multi-country proxy tunnels ready for live telemetry</span>
+                                </div>
+                                <div class="ga-action-btns">
+                                    <button id="sendTrafficBtn" class="btn-ga">
+                                        <span class="btn-spinner" id="gaSpinner" style="display:none;"></span>
+                                        <span id="gaBtnText">🚀 Send Active Users</span>
+                                    </button>
+                                    <button id="cancelTrafficBtn" class="btn-ga-cancel" style="display:none;">
+                                        🛑 Stop / Cancel
+                                    </button>
+                                </div>
+                            </div>
+
+                            <div id="gaStatusBox" class="ga-status-box" style="display: none;"></div>
                         </div>
 
-                        <!-- 4-Column Primary Controls Grid -->
-                        <div class="ga-controls-grid">
-                            <div class="ga-input-item">
-                                <label for="gaUserCount">👥 Requests / Users</label>
-                                <input type="number" id="gaUserCount" class="input-control" value="1000" min="10" max="10000" step="50" />
-                            </div>
-                            <div class="ga-input-item">
-                                <label for="gaDuration">⏱️ Time (Minutes)</label>
-                                <input type="number" id="gaDuration" class="input-control" value="0" min="0" max="120" step="1" placeholder="0 = Instant fast" />
-                            </div>
-                            <div class="ga-input-item">
-                                <label for="gaLocation">🌍 Traffic Location</label>
-                                <div class="select-wrapper">
-                                    <select id="gaLocation" class="select-control">
-                                        <option value="global" selected>🌐 Global Mix (US, UK, DE, NL, RU)</option>
-                                        <option value="us">🇺🇸 United States (NY, SF, Dallas)</option>
-                                        <option value="europe">🇪🇺 Europe (Germany, France, NL)</option>
-                                        <option value="india">🇮🇳 India (Delhi, Mumbai, Bengaluru)</option>
-                                        <option value="uk">🇬🇧 United Kingdom (London)</option>
-                                        <option value="singapore">🇸🇬 Singapore</option>
-                                    </select>
+                        <!-- GSC ORGANIC SEARCH & CTR CONTROLS CONTAINER -->
+                        <div id="gscControlsContainer" style="display: none;">
+                            <div class="ga-header">
+                                <div class="ga-icon-badge" style="background: rgba(59, 130, 246, 0.15); border-color: rgba(59, 130, 246, 0.4);">🔍</div>
+                                <div class="ga-title-wrap">
+                                    <h4>Google Search Console (GSC) Organic CTR &amp; SERP Simulator <span class="badge-pill">Search Engine Mode</span></h4>
+                                    <p class="ga-sub">Simulates authentic Google Search impressions and CTR clicks with custom search queries, SERP rank emulation, and instant Googlebot indexing crawler sitemap pings.</p>
                                 </div>
                             </div>
-                            <div class="ga-input-item">
-                                <label for="gaDevice">📱 Target Device</label>
-                                <div class="select-wrapper">
-                                    <select id="gaDevice" class="select-control">
-                                        <option value="all" selected>🔄 Mixed (Mobile 60%, PC 35%)</option>
-                                        <option value="mobile">📱 Mobile Only (iPhone, Galaxy)</option>
-                                        <option value="desktop">💻 Desktop Only (Windows, Mac)</option>
-                                        <option value="tablet">📟 Tablet Only (iPad Air)</option>
-                                    </select>
+
+                            <!-- GSC Keyword Presets -->
+                            <div class="ga-campaign-presets">
+                                <span class="preset-label">Query Presets:</span>
+                                <button type="button" class="ga-preset-btn gsc-preset-chip" data-kws="fast web scraper, free web scraper api, lightning scraper" data-domain="google.com" data-rank="1">⚡ Top 3 Ranking Keywords</button>
+                                <button type="button" class="ga-preset-btn gsc-preset-chip" data-kws="extract website data online, best python scraper, html parser api" data-domain="google.com" data-rank="2">🔍 High-Volume Scraper Queries</button>
+                                <button type="button" class="ga-preset-btn gsc-preset-chip" data-kws="online scraper india, best data scraping tools" data-domain="google.co.in" data-rank="1">🇮🇳 Google India SERP Hits</button>
+                                <button type="button" class="ga-preset-btn gsc-preset-chip" data-kws="realtime ga4 booster, active users traffic bot test" data-domain="google.com" data-rank="1">🇺🇸 Google US Desktop CTR</button>
+                            </div>
+
+                            <!-- GSC Primary Controls Grid -->
+                            <div class="ga-controls-grid">
+                                <div class="ga-input-item flex-2">
+                                    <label for="gscKeywords">🎯 Target Search Keywords <span class="opt-label">(Comma-separated)</span></label>
+                                    <input type="text" id="gscKeywords" class="input-control" value="fast web scraper, free web scraping api, extract website data online, lightning scraper" placeholder="e.g. keyword 1, keyword 2, keyword 3" />
+                                </div>
+                                <div class="ga-input-item">
+                                    <label for="gscGoogleDomain">🌐 Google Search Region</label>
+                                    <div class="select-wrapper">
+                                        <select id="gscGoogleDomain" class="select-control">
+                                            <option value="google.com" selected>🌐 Google Global (google.com)</option>
+                                            <option value="google.co.in">🇮🇳 Google India (google.co.in)</option>
+                                            <option value="google.co.uk">🇬🇧 Google UK (google.co.uk)</option>
+                                            <option value="google.de">🇩🇪 Google Germany (google.de)</option>
+                                            <option value="google.fr">🇫🇷 Google France (google.fr)</option>
+                                        </select>
+                                    </div>
+                                </div>
+                                <div class="ga-input-item">
+                                    <label for="gscCount">👥 Organic Clicks / Queries</label>
+                                    <input type="number" id="gscCount" class="input-control" value="500" min="10" max="5000" step="50" />
                                 </div>
                             </div>
+
+                            <!-- GSC Secondary Controls Grid -->
+                            <div class="ga-controls-grid" style="margin-top: 10px;">
+                                <div class="ga-input-item">
+                                    <label for="gscTargetRank">🏆 Simulated SERP Rank Position</label>
+                                    <div class="select-wrapper">
+                                        <select id="gscTargetRank" class="select-control">
+                                            <option value="1" selected>🥇 Rank #1 (Top Snippet / 39% CTR)</option>
+                                            <option value="2">🥈 Rank #2 (Position 2 / 18% CTR)</option>
+                                            <option value="3">🥉 Rank #3 (Position 3 / 11% CTR)</option>
+                                            <option value="5">📄 Rank #4 - #5 (Top Half First Page)</option>
+                                            <option value="10">📑 Rank #6 - #10 (First Page)</option>
+                                        </select>
+                                    </div>
+                                </div>
+                                <div class="ga-input-item">
+                                    <label for="gscDevice">📱 Search Device</label>
+                                    <div class="select-wrapper">
+                                        <select id="gscDevice" class="select-control">
+                                            <option value="all" selected>🔄 Mixed (Mobile 65%, PC 35%)</option>
+                                            <option value="mobile">📱 Mobile Smartphone Only</option>
+                                            <option value="desktop">💻 Desktop PC Only</option>
+                                        </select>
+                                    </div>
+                                </div>
+                                <div class="ga-input-item flex-2" style="justify-content: center;">
+                                    <label for="gscPingSitemap" style="cursor: pointer; display: flex; align-items: center; gap: 8px; font-weight: 600;">
+                                        <input type="checkbox" id="gscPingSitemap" checked> 🤖 Ping Googlebot Sitemap Crawler (Instant Indexing Re-crawl)
+                                    </label>
+                                </div>
+                            </div>
+
+                            <!-- GSC Action Bar Row -->
+                            <div class="ga-action-bar">
+                                <div class="ga-action-note">
+                                    <span class="pulse-indicator"></span>
+                                    <span>Google SERP cross-site click referrer tunnels active</span>
+                                </div>
+                                <div class="ga-action-btns">
+                                    <button id="sendGscTrafficBtn" class="btn-ga" style="background: linear-gradient(135deg, #2563eb 0%, #7c3aed 100%);">
+                                        <span class="btn-spinner" id="gscSpinner" style="display:none;"></span>
+                                        <span id="gscBtnText">🚀 Launch GSC Organic Clicks</span>
+                                    </button>
+                                </div>
+                            </div>
+
+                            <div id="gscStatusBox" class="ga-status-box" style="display: none;"></div>
                         </div>
-
-                        <!-- Extended Campaign Controls (Traffic Source, Event Type, Concurrency) -->
-                        <div class="ga-controls-grid" style="margin-top: 10px;">
-                            <div class="ga-input-item">
-                                <label for="gaReferrer">🔗 Traffic Referrer Source</label>
-                                <div class="select-wrapper">
-                                    <select id="gaReferrer" class="select-control">
-                                        <option value="google" selected>🔍 Google Organic (google.com)</option>
-                                        <option value="direct">🌐 Direct / No Referrer</option>
-                                        <option value="facebook">📘 Facebook (facebook.com)</option>
-                                        <option value="twitter">🐦 X / Twitter (t.co)</option>
-                                        <option value="reddit">👾 Reddit (reddit.com)</option>
-                                        <option value="youtube">📺 YouTube (youtube.com)</option>
-                                        <option value="bing">🔎 Bing (bing.com)</option>
-                                        <option value="custom">⚙️ Custom Referrer URL</option>
-                                    </select>
-                                </div>
-                            </div>
-                            <div class="ga-input-item" id="gaCustomReferrerGroup" style="display: none;">
-                                <label for="gaCustomReferrer">Custom Referrer URL</label>
-                                <input type="text" id="gaCustomReferrer" class="input-control font-mono" placeholder="https://news.ycombinator.com/" />
-                            </div>
-                            <div class="ga-input-item">
-                                <label for="gaEventType">⚡ GA4 Telemetry Event</label>
-                                <div class="select-wrapper">
-                                    <select id="gaEventType" class="select-control">
-                                        <option value="page_view" selected>📄 page_view (Standard Page View)</option>
-                                        <option value="user_engagement">⏱️ user_engagement (Active Session)</option>
-                                        <option value="scroll">📜 scroll (90% Depth Read)</option>
-                                        <option value="view_item">🛍️ view_item (E-Commerce Product View)</option>
-                                    </select>
-                                </div>
-                            </div>
-                            <div class="ga-input-item">
-                                <label>⚡ Concurrency: <span id="concurrencyDisplay" class="val-pill">40 streams</span></label>
-                                <div class="range-slider-wrap" style="height: 38px;">
-                                    <input type="range" id="gaConcurrency" min="10" max="80" step="5" value="40" />
-                                </div>
-                            </div>
-                        </div>
-
-                        <!-- Secondary Controls (Measurement ID + Proxy Tunnel) -->
-                        <div class="ga-extra-grid">
-                            <div class="ga-input-item flex-1">
-                                <label for="gaMeasurementId">🏷️ GA Measurement ID <span class="opt-label">(Optional)</span></label>
-                                <input type="text" id="gaMeasurementId" class="input-control font-mono" placeholder="Auto-detects G-XXXXX if empty" />
-                            </div>
-                            <div class="ga-input-item flex-2">
-                                <label for="gaProxy">🛡️ Proxy Engine: <span class="badge-active">⚡ Auto Live Verified Active</span></label>
-                                <input type="text" id="gaProxy" class="input-control font-mono" placeholder="Default: Multi-country verified proxies active" />
-                            </div>
-                        </div>
-
-                        <!-- UTM Campaign Builder Collapsible -->
-                        <details class="utm-details-box">
-                            <summary>🎯 UTM Campaign Tags (utm_source, utm_medium, utm_campaign)</summary>
-                            <div class="utm-inputs-grid">
-                                <div class="utm-input-item">
-                                    <label for="utmSource">utm_source</label>
-                                    <input type="text" id="utmSource" class="input-control" placeholder="e.g. google, newsletter, twitter" />
-                                </div>
-                                <div class="utm-input-item">
-                                    <label for="utmMedium">utm_medium</label>
-                                    <input type="text" id="utmMedium" class="input-control" placeholder="e.g. organic, cpc, referral, social" />
-                                </div>
-                                <div class="utm-input-item">
-                                    <label for="utmCampaign">utm_campaign</label>
-                                    <input type="text" id="utmCampaign" class="input-control" placeholder="e.g. traffic_surge_2026" />
-                                </div>
-                            </div>
-                        </details>
-
-                        <!-- Action Bar Row -->
-                        <div class="ga-action-bar">
-                            <div class="ga-action-note">
-                                <span class="pulse-indicator"></span>
-                                <span>Multi-country proxy tunnels ready for live telemetry</span>
-                            </div>
-                            <div class="ga-action-btns">
-                                <button id="sendTrafficBtn" class="btn-ga">
-                                    <span class="btn-spinner" id="gaSpinner" style="display:none;"></span>
-                                    <span id="gaBtnText">🚀 Send Active Users</span>
-                                </button>
-                                <button id="cancelTrafficBtn" class="btn-ga-cancel" style="display:none;">
-                                    🛑 Stop / Cancel
-                                </button>
-                            </div>
-                        </div>
-
-                        <div id="gaStatusBox" class="ga-status-box" style="display: none;"></div>
                     </div>
 
                     <!-- Enterprise Real-Time Traffic Telemetry Monitor Deck -->
